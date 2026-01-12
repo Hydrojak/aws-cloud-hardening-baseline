@@ -1,0 +1,15 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Audit results
+audit/results/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
