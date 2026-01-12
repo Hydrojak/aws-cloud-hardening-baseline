@@ -31,6 +31,32 @@ This baseline deploys security controls only (no application workload):
 All resources are managed via **Terraform modules**.
 
 ---
+## 🗺️ Architecture Diagram
+
+```mermaid
+flowchart TB
+  Dev["You (Git Bash)"] --> TF["Terraform"]
+
+  TF --> M1["iam-baseline"]
+  TF --> M2["cloudtrail-logging"]
+  TF --> M3["s3-guardrails"]
+
+  M1 --> PP["IAM Password Policy"]
+  M1 --> AA["IAM Access Analyzer"]
+
+  M2 --> CT["AWS CloudTrail (Management Events)"]
+  M2 --> S3["S3 Log Bucket"]
+  CT --> S3
+
+  S3 --> PAB["Block Public Access"]
+  S3 --> ENC["SSE-S3 Encryption"]
+  S3 --> VER["Versioning"]
+  S3 --> TLS["HTTPS-only Bucket Policy"]
+
+  M3 --> GP["IAM Guardrail Policy (Explicit Deny)"]
+  GP --> DENY["Deny Public S3 Exposure"]
+
+```
 
 ## 📦 Terraform Modules
 
@@ -124,4 +150,5 @@ terraform destroy
 ### 👤 Author
 Sacha Gatta-Boucard
 - Cloud Security / Blue Team oriented project
+
 
