@@ -7,3 +7,9 @@ module "cloudtrail_logging" {
   log_bucket_name = "hydrojak-baseline-logs-12345"
   trail_name      = "baseline-cloudtrail"
 }
+
+module "s3_guardrails" {
+  source                    = "./modules/s3-guardrails"
+  target_type               = "user"
+  target_iam_principal_name = "REPLACE_ME_IAM_USER_OR_ROLE"
+}
