@@ -1,0 +1,18 @@
+# =========================
+# Terraform (CRITICAL)
+# =========================
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# =========================
+# Security audit outputs
+# =========================
+audit/results/
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
