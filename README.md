@@ -93,7 +93,7 @@ terraform plan
 terraform apply
 ```
 
-Destroy all resources
+### Destroy all resources
 ```bash
 terraform destroy
 ```
@@ -124,3 +124,4 @@ terraform destroy
 ### 👤 Author
 Sacha Gatta-Boucard
 - Cloud Security / Blue Team oriented project
+
