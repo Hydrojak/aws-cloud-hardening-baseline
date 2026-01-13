@@ -18,3 +18,8 @@ module "alerting_cloudwatch" {
   source         = "./modules/alerting-cloudwatch"
   retention_days = 7
 }
+
+module "detection_eventbridge" {
+  source        = "./modules/detection-eventbridge"
+  log_group_arn = module.alerting_cloudwatch.log_group_arn
+}
