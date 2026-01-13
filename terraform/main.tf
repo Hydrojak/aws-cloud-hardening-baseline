@@ -13,3 +13,8 @@ module "s3_guardrails" {
   target_type               = "user"
   target_iam_principal_name = "REPLACE_ME_IAM_USER_OR_ROLE"
 }
+# V2.1 - Detection + Logging
+module "alerting_cloudwatch" {
+  source         = "./modules/alerting-cloudwatch"
+  retention_days = 7
+}
