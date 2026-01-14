@@ -12,6 +12,8 @@ This project demonstrates **Cloud Security / Blue Team** skills using **Infrastr
 - Prevent common cloud security misconfigurations
 - Enable audit and forensic readiness
 - Remain compatible with AWS Free Tier (near $0)
+- Detect high-risk actions through audit logs
+- Trigger alerts on critical security events
 
 ---
 
@@ -19,7 +21,7 @@ This project demonstrates **Cloud Security / Blue Team** skills using **Infrastr
 
 This project is structured in two layers:
 
-### V1 — Hardening (Preventive controls)
+### 1 — Hardening (Preventive controls)
 - **IAM hardening**
   - Strong account password policy
   - IAM Access Analyzer
@@ -29,13 +31,20 @@ This project is structured in two layers:
 - **Preventive guardrails**
   - IAM deny policies preventing public S3 exposure
 
-### V2 — Detection (Defensive visibility)
+### 2.1 — Detection (Defensive visibility)
 - **Event-driven detections**
   - EventBridge rules matching high-risk CloudTrail events
 - **Centralized detection logs**
   - CloudWatch Log Group with short retention (cost control)
 
 All resources are managed via **Terraform modules**, following a design-first and cost-conscious approach.
+### V2.2 — Alerting (Signal escalation)
+- Metric-based alerting
+  - CloudWatch metric filters applied to detection logs
+- Security alarms
+  - CloudWatch alarms triggered on high-risk actions
+- Design-first approach
+  - Alert logic defined without assuming a notification channel (SNS optional)
 
 ---
 ## 🗺️ Architecture Diagram
@@ -67,6 +76,10 @@ flowchart TB
   %% V2 - Detection
   CT --> EB["EventBridge Detection Rules"]
   EB --> CWL["CloudWatch Logs (Detections)"]
+  %% V2.2 - Alerting
+  CWL --> MF["CloudWatch Metric Filters"]
+  MF --> AL["CloudWatch Alarms"]
+
 ```
 
 ## 📦 Terraform Modules
@@ -105,6 +118,15 @@ flowchart TB
   - S3 exposure-related changes
 - Events forwarded to CloudWatch Logs for analysis
 ---
+### `alerting-alarms` (V2.2)
+
+- CloudWatch metric filters applied to detection logs
+- CloudWatch alarms for:
+  - CloudTrail tampering
+  - IAM policy changes
+  - Credential creation
+  - S3 exposure attempts
+- Alerts designed to be SNS-ready but provider-agnostic
 
 ## 💰 Cost Control
 
@@ -164,7 +186,7 @@ terraform destroy
 ---
 ## 🛣️ Roadmap
 
-- Alerting (CloudWatch Alarms / SNS)
+- SNS notification integration (optional)
 - Automated response (Lambda remediation)
 - Organization-level guardrails (SCPs)
 - Incident response automation
@@ -182,16 +204,14 @@ Sacha Gatta-Boucard
 **Is this deployed on AWS?**  
 No. This project is design-first and statically validated. Runtime behavior requires an AWS account.
 
-**Why no alerting yet?**  
-Alerting is intentionally out of scope for the baseline. It will be introduced in a future iteration where it adds clear security value.
+**Is alerting implemented?**  
+Alert logic is fully defined. Notification channels (SNS, email, Slack) are intentionally optional.
 
 **Is this production-ready?**  
 This project is a learning and demonstration baseline, not a full production security platform.
 
 **Why focus on EventBridge for detection?**  
 EventBridge provides low-cost, event-driven detection well-suited for high-signal CloudTrail events.
-
-
 
 
 
