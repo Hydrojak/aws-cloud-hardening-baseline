@@ -175,5 +175,23 @@ This project focuses on **security design and defensive architecture**, rather t
 Sacha Gatta-Boucard
 - Cloud Security / Blue Team oriented project
 
+---
+
+## ❓ FAQ
+
+**Is this deployed on AWS?**  
+No. This project is design-first and statically validated. Runtime behavior requires an AWS account.
+
+**Why no alerting yet?**  
+Alerting is intentionally out of scope for the baseline. It will be introduced in a future iteration where it adds clear security value.
+
+**Is this production-ready?**  
+This project is a learning and demonstration baseline, not a full production security platform.
+
+**Why focus on EventBridge for detection?**  
+EventBridge provides low-cost, event-driven detection well-suited for high-signal CloudTrail events.
+
+
+
 
 
