@@ -23,3 +23,9 @@ module "detection_eventbridge" {
   source        = "./modules/detection-eventbridge"
   log_group_arn = module.alerting_cloudwatch.log_group_arn
 }
+
+# V2.2 - Alerting (Alarms)
+module "alerting_alarms" {
+  source         = "./modules/alerting-alarms"
+  log_group_name = module.alerting_cloudwatch.log_group_name
+}
