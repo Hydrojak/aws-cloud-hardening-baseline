@@ -11,7 +11,7 @@ module "cloudtrail_logging" {
 module "s3_guardrails" {
   source                    = "./modules/s3-guardrails"
   target_type               = "user"
-  target_iam_principal_name = "REPLACE_ME_IAM_USER_OR_ROLE"
+  target_iam_principal_name = "terraform-admin"
 }
 # V2.1 - Detection + Logging
 module "alerting_cloudwatch" {
