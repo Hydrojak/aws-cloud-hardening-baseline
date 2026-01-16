@@ -2,6 +2,11 @@
 # CloudWatch Metric Filters + Alarms
 # Triggered by detection events written to CloudWatch Logs
 
+locals {
+  alarm_actions = var.sns_topic_arn == null ? [] : [var.sns_topic_arn]
+  ok_actions    = var.sns_topic_arn == null ? [] : [var.sns_topic_arn]
+}
+
 # --- CloudTrail tampering
 resource "aws_cloudwatch_log_metric_filter" "cloudtrail_tampering" {
   name           = "detect-cloudtrail-tampering"
@@ -29,6 +34,9 @@ resource "aws_cloudwatch_metric_alarm" "cloudtrail_tampering" {
   metric_name = aws_cloudwatch_log_metric_filter.cloudtrail_tampering.metric_transformation[0].name
 
   treat_missing_data = "notBreaching"
+
+  alarm_actions = local.alarm_actions
+  ok_actions    = local.ok_actions
 }
 
 # --- IAM policy changes (privilege escalation signals)
@@ -58,6 +66,9 @@ resource "aws_cloudwatch_metric_alarm" "iam_policy_changes" {
   metric_name = aws_cloudwatch_log_metric_filter.iam_policy_changes.metric_transformation[0].name
 
   treat_missing_data = "notBreaching"
+
+  alarm_actions = local.alarm_actions
+  ok_actions    = local.ok_actions
 }
 
 # --- Credential creation
@@ -87,6 +98,9 @@ resource "aws_cloudwatch_metric_alarm" "credential_creation" {
   metric_name = aws_cloudwatch_log_metric_filter.credential_creation.metric_transformation[0].name
 
   treat_missing_data = "notBreaching"
+
+  alarm_actions = local.alarm_actions
+  ok_actions    = local.ok_actions
 }
 
 # --- S3 exposure attempts
@@ -116,4 +130,7 @@ resource "aws_cloudwatch_metric_alarm" "s3_exposure" {
   metric_name = aws_cloudwatch_log_metric_filter.s3_exposure.metric_transformation[0].name
 
   treat_missing_data = "notBreaching"
+
+  alarm_actions = local.alarm_actions
+  ok_actions    = local.ok_actions
 }

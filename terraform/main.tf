@@ -3,20 +3,26 @@ module "iam_baseline" {
 }
 
 module "cloudtrail_logging" {
-  source          = "./modules/cloudtrail-logging"
-  log_bucket_name = "hydrojak-baseline-logs-12345"
-  trail_name      = "baseline-cloudtrail"
+  source                = "./modules/cloudtrail-logging"
+  log_bucket_name       = var.cloudtrail_log_bucket_name
+  trail_name            = var.cloudtrail_trail_name
+  is_multi_region_trail = var.cloudtrail_is_multi_region
+  force_destroy_bucket  = var.cloudtrail_force_destroy_bucket
+  kms_key_arn           = var.cloudtrail_kms_key_arn
+  retention_days        = var.cloudtrail_retention_days
 }
 
 module "s3_guardrails" {
   source                    = "./modules/s3-guardrails"
-  target_type               = "user"
-  target_iam_principal_name = "terraform-admin"
+  target_type               = var.guardrails_target_type
+  target_iam_principal_name = var.guardrails_target_name
 }
+
 # V2.1 - Detection + Logging
 module "alerting_cloudwatch" {
   source         = "./modules/alerting-cloudwatch"
-  retention_days = 7
+  retention_days = var.cw_log_retention_days
+  kms_key_arn    = var.cw_log_kms_key_arn
 }
 
 module "detection_eventbridge" {
@@ -28,4 +34,5 @@ module "detection_eventbridge" {
 module "alerting_alarms" {
   source         = "./modules/alerting-alarms"
   log_group_name = module.alerting_cloudwatch.log_group_name
+  sns_topic_arn  = var.alarm_sns_topic_arn
 }
