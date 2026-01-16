@@ -118,6 +118,24 @@ flowchart TB
   - S3 exposure-related changes
 - Events forwarded to CloudWatch Logs for analysis
 ---
+## 🧪 Detection Testing
+
+The following detection scenarios were manually tested:
+
+- **Credential creation**
+  - Action: `CreateAccessKey`
+  - Result: CloudTrail event detected
+  - Detection: EventBridge rule matched
+  - Outcome: CloudWatch metric incremented and alarm evaluated
+
+- **IAM policy changes**
+  - Action: IAM policy attachment
+  - Result: Event captured and logged
+
+Detection events were visible in CloudWatch Logs under:
+`/aws/cloud-hardening-baseline/detections`
+
+
 ### `alerting-alarms` (V2.2)
 
 - CloudWatch metric filters applied to detection logs
@@ -169,7 +187,26 @@ terraform apply
 ```bash
 terraform destroy
 ```
+## ✅ AWS Validation
+
+This baseline has been deployed and tested on a real AWS account.
+
+The following components were validated in real conditions:
+- CloudTrail successfully logs management events
+- EventBridge rules capture high-risk CloudTrail events
+- Detection events are forwarded to CloudWatch Logs
+- Metric filters generate custom security metrics
+- CloudWatch alarms evaluate detection signals correctly
+
+All tests were performed using the AWS CLI to simulate real administrative actions.
+
+
+
+
 ---
+
+
+
 ### 📚 Documentation
 - CIS mapping: docs/cis-mapping.md
 
@@ -192,6 +229,21 @@ terraform destroy
 - Incident response automation
 
 ---
+## ⚠️ Known Limitations
+
+- Alarms do not send notifications by default (SNS intentionally out of scope)
+- Event delivery may take up to a few minutes due to CloudTrail propagation
+- Guardrail policies may block Terraform destroy operations if attached to the execution principal
+- This project focuses on high-signal detections and does not aim for exhaustive coverage
+
+## 🧠 Security Design Notes
+
+- Explicit deny policies are used to enforce preventive controls
+- Event-driven detection was preferred over agent-based monitoring
+- Short log retention is used to minimize costs while preserving forensic value
+- Terraform execution identity should be separated from guarded principals in production
+
+
 This project focuses on **security design and defensive architecture**, rather than production deployment, and is intended as a learning and demonstration baseline for cloud defense.
 ### 👤 Author
 Sacha Gatta-Boucard
