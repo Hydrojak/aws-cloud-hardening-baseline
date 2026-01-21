@@ -20,10 +20,6 @@ output "detections_log_group_arn" {
   value       = module.alerting_cloudwatch.log_group_arn
 }
 
-output "eventbridge_role_name" {
-  description = "IAM role used by EventBridge to write to CloudWatch Logs"
-  value       = module.detection_eventbridge.role_name
-}
 
 output "alarm_names" {
   description = "CloudWatch alarm names created by V2.2"
