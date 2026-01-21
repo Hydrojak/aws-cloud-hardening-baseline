@@ -14,3 +14,21 @@ variable "force_destroy_bucket" {
   type        = bool
   default     = true
 }
+
+variable "is_multi_region_trail" {
+  description = "Whether CloudTrail is multi-region (recommended true for hardening)"
+  type        = bool
+  default     = true
+}
+
+variable "kms_key_arn" {
+  description = "Optional KMS key ARN for S3 log encryption (null = SSE-S3)"
+  type        = string
+  default     = null
+}
+
+variable "retention_days" {
+  description = "Optional expiration days for S3 logs (0 disables expiration)"
+  type        = number
+  default     = 0
+}

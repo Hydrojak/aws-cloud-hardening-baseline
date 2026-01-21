@@ -20,3 +20,9 @@ variable "threshold" {
   type        = number
   default     = 1
 }
+
+variable "sns_topic_arn" {
+  description = "Optional SNS topic ARN for alarm notifications (null disables actions)"
+  type        = string
+  default     = null
+}

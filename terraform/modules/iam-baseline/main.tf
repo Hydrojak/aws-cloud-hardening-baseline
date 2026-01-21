@@ -11,7 +11,7 @@ resource "aws_iam_account_password_policy" "strict" {
   allow_users_to_change_password = true
   hard_expiry                    = false
 
-  # 90 days age for password 
+  # 90 days age for password
   max_password_age          = 90
   password_reuse_prevention = 24
 }

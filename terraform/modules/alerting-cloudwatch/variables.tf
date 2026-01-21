@@ -9,3 +9,9 @@ variable "retention_days" {
   type        = number
   default     = 7
 }
+
+variable "kms_key_arn" {
+  description = "Optional KMS key ARN for log group encryption (null = no CMK)"
+  type        = string
+  default     = null
+}
