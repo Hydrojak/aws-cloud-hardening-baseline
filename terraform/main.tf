@@ -31,8 +31,16 @@ module "detection_eventbridge" {
 }
 
 # V2.2 - Alerting (Alarms)
+module "alerting_sns" {
+  source     = "./modules/alerting-sns"
+  topic_name = var.sns_topic_name
+  kms_key_arn = var.sns_kms_key_arn
+
+  email_subscriptions = var.sns_email == null ? [] : [var.sns_email]
+}
+
 module "alerting_alarms" {
   source         = "./modules/alerting-alarms"
   log_group_name = module.alerting_cloudwatch.log_group_name
-  sns_topic_arn  = var.alarm_sns_topic_arn
+  sns_topic_arn  = module.alerting_sns.topic_arn
 }

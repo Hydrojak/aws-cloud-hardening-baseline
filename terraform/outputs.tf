@@ -35,3 +35,7 @@ output "access_analyzer_name" {
   description = "Name of the IAM Access Analyzer"
   value       = module.iam_baseline.access_analyzer_name
 }
+output "sns_topic_arn" {
+  description = "SNS topic ARN for alarms"
+  value       = module.alerting_sns.topic_arn
+}
