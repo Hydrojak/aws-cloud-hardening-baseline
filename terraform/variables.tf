@@ -84,3 +84,20 @@ variable "alarm_sns_topic_arn" {
   type        = string
   default     = null
 }
+variable "sns_topic_name" {
+  description = "SNS topic name for security alerts"
+  type        = string
+  default     = "cloud-hardening-alerts"
+}
+
+variable "sns_email" {
+  description = "Email to receive SNS alerts (set to null to disable email subscription)"
+  type        = string
+  default     = null
+}
+
+variable "sns_kms_key_arn" {
+  description = "Optional KMS key ARN for SNS encryption"
+  type        = string
+  default     = null
+}

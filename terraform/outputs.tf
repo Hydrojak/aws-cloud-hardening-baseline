@@ -20,10 +20,6 @@ output "detections_log_group_arn" {
   value       = module.alerting_cloudwatch.log_group_arn
 }
 
-output "eventbridge_role_name" {
-  description = "IAM role used by EventBridge to write to CloudWatch Logs"
-  value       = module.detection_eventbridge.role_name
-}
 
 output "alarm_names" {
   description = "CloudWatch alarm names created by V2.2"
@@ -38,4 +34,8 @@ output "s3_guardrails_policy_arn" {
 output "access_analyzer_name" {
   description = "Name of the IAM Access Analyzer"
   value       = module.iam_baseline.access_analyzer_name
+}
+output "sns_topic_arn" {
+  description = "SNS topic ARN for alarms"
+  value       = module.alerting_sns.topic_arn
 }
