@@ -2,7 +2,8 @@
 # NOTE: Without AWS credentials, you can validate syntax but not plan/apply.
 
 data "aws_caller_identity" "current" {}
-
+data "aws_region" "current" {}
+data "aws_partition" "current" {}
 resource "aws_s3_bucket" "trail_logs" {
   bucket        = var.log_bucket_name
   force_destroy = var.force_destroy_bucket
@@ -98,7 +99,13 @@ resource "aws_s3_bucket_policy" "trail_logs" {
         Action    = "s3:PutObject"
         Resource  = "${aws_s3_bucket.trail_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
         Condition = {
-          StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control" }
+          StringEquals = {
+            "s3:x-amz-acl"      = "bucket-owner-full-control"
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+          ArnLike = {
+            "aws:SourceArn" = "arn:${data.aws_partition.current.partition}:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/${var.trail_name}"
+          }
         }
       },
       {
@@ -107,10 +114,19 @@ resource "aws_s3_bucket_policy" "trail_logs" {
         Principal = { Service = "cloudtrail.amazonaws.com" }
         Action    = "s3:GetBucketAcl"
         Resource  = aws_s3_bucket.trail_logs.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+          ArnLike = {
+            "aws:SourceArn" = "arn:${data.aws_partition.current.partition}:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/${var.trail_name}"
+          }
+        }
       }
     ]
   })
 }
+
 
 resource "aws_cloudtrail" "baseline" {
   name                          = var.trail_name

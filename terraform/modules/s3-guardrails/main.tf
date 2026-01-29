@@ -35,13 +35,15 @@ resource "aws_iam_policy" "s3_guardrails" {
 }
 
 resource "aws_iam_user_policy_attachment" "attach_to_user" {
-  count      = var.target_type == "user" ? 1 : 0
+  count      = var.enable_attachment && var.target_type == "user" ? 1 : 0
   user       = var.target_iam_principal_name
   policy_arn = aws_iam_policy.s3_guardrails.arn
 }
 
 resource "aws_iam_role_policy_attachment" "attach_to_role" {
-  count      = var.target_type == "role" ? 1 : 0
+  count      = var.enable_attachment && var.target_type == "role" ? 1 : 0
   role       = var.target_iam_principal_name
   policy_arn = aws_iam_policy.s3_guardrails.arn
 }
+
+
