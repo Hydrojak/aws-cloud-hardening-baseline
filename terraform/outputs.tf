@@ -37,5 +37,6 @@ output "access_analyzer_name" {
 }
 output "sns_topic_arn" {
   description = "SNS topic ARN for alarms"
-  value       = module.alerting_sns.topic_arn
+  value       = local.effective_sns_topic_arn
 }
+

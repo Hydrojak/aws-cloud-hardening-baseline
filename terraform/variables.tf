@@ -79,11 +79,6 @@ variable "cw_log_kms_key_arn" {
   default     = null
 }
 
-variable "alarm_sns_topic_arn" {
-  description = "Optional SNS topic ARN to notify on alarms (null disables actions)"
-  type        = string
-  default     = null
-}
 variable "sns_topic_name" {
   description = "SNS topic name for security alerts"
   type        = string
@@ -101,3 +96,20 @@ variable "sns_kms_key_arn" {
   type        = string
   default     = null
 }
+variable "alarm_sns_topic_arn" {
+  description = "Optional existing SNS topic ARN to use for alarm notifications (used when create_sns_topic = false)"
+  type        = string
+  default     = null
+}
+
+variable "create_sns_topic" {
+  description = "Whether to create an SNS topic for alarm notifications. If false, alarm_sns_topic_arn is used (and may be null to disable alarm actions)."
+  type        = bool
+  default     = true
+}
+variable "enable_guardrails_attachment" {
+  description = "If true, attach the S3 guardrails policy to the target principal. If false, only create the policy."
+  type        = bool
+  default     = true
+}
+

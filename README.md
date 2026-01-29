@@ -1,269 +1,255 @@
 # AWS Cloud Hardening Baseline (Terraform)
+> Security baseline • Terraform • Blue Team • Lab-tested
 
-A **cost-conscious AWS security baseline** focused on **cloud defense**, **misconfiguration prevention**, and **audit readiness**.
+A **cost-conscious AWS security baseline** focused on **hardening, detection, and alerting**, implemented entirely with **Terraform modules**.
 
-This project demonstrates **Cloud Security / Blue Team** skills using **Infrastructure as Code (Terraform)**, with an emphasis on **secure-by-default configurations** and **zero-cost awareness**.
-
----
-
-## 🎯 Objectives
-
-- Establish a secure AWS foundation
-- Prevent common cloud security misconfigurations
-- Enable audit and forensic readiness
-- Remain compatible with AWS Free Tier (near $0)
-- Detect high-risk actions through audit logs
-- Trigger alerts on critical security events
+This project is designed as a **Blue Team / Cloud Security portfolio baseline**: secure defaults, explicit guardrails, and high-signal detections based on CloudTrail events — without relying on expensive managed security services.
 
 ---
 
-## 🧱 Architecture Overview
+## Project goals
 
-This project is structured in two layers:
+- Reduce the AWS attack surface with preventive controls
+- Ensure audit and forensic readiness
+- Detect high-risk security events
+- Provide actionable alerts
+- Remain free-tier friendly and easy to reason about
 
-### 1 — Hardening (Preventive controls)
-- **IAM hardening**
+---
+
+## What this baseline provides
+
+### Hardening (preventive controls)
+
+- **IAM baseline**
   - Strong account password policy
-  - IAM Access Analyzer
-- **Centralized logging**
-  - CloudTrail enabled (management events)
-  - Logs stored in a hardened S3 bucket
-- **Preventive guardrails**
-  - IAM deny policies preventing public S3 exposure
+  - IAM Access Analyzer enabled at account level
 
-### 2.1 — Detection (Defensive visibility)
-- **Event-driven detections**
-  - EventBridge rules matching high-risk CloudTrail events
-- **Centralized detection logs**
-  - CloudWatch Log Group with short retention (cost control)
+- **Centralized audit logging**
+  - CloudTrail enabled for management events
+  - Dedicated hardened S3 bucket for logs:
+    - Block Public Access enabled
+    - Versioning enabled
+    - TLS-only bucket policy
+    - Encryption at rest (SSE-S3 by default, optional SSE-KMS)
+    - Optional lifecycle expiration
 
-All resources are managed via **Terraform modules**, following a design-first and cost-conscious approach.
-### V2.2 — Alerting (Signal escalation)
-- Metric-based alerting
-  - CloudWatch metric filters applied to detection logs
-- Security alarms
-  - CloudWatch alarms triggered on high-risk actions
-- Design-first approach
-  - Alert logic defined without assuming a notification channel (SNS optional)
+- **S3 guardrails**
+  - Explicit deny policies preventing:
+    - Making buckets public (ACLs, policies, public access block)
+    - Disabling account-level S3 Public Access Block
+  - Policies can be attached to a user or role
 
 ---
-## 🗺️ Architecture Diagram
+
+### Detection (visibility)
+
+- **EventBridge detection rules** based on CloudTrail logs:
+  - CloudTrail tampering attempts
+  - IAM policy changes
+  - Credential creation events
+  - S3 exposure attempts
+
+- **Centralized detection log**
+  - CloudWatch Logs log group dedicated to security detections
+  - Retention configurable (default: 30 days)
+
+---
+
+### Alerting (signal escalation)
+
+- CloudWatch metric filters on detection logs
+- CloudWatch alarms for each detection category
+- Optional SNS topic for alert delivery
+- Optional email subscription for notifications
+
+---
+## Architecture
 
 ```mermaid
 flowchart TB
-  Dev["You (Git Bash)"] --> TF["Terraform"]
+  Dev["You"] --> TF["Terraform (root module)"]
 
-  %% V1 - Hardening
-  TF --> M1["iam-baseline"]
-  TF --> M2["cloudtrail-logging"]
-  TF --> M3["s3-guardrails"]
+  TF --> IAM["iam-baseline"]
+  TF --> CTL["cloudtrail-logging"]
+  TF --> GR["s3-guardrails"]
 
-  M1 --> PP["IAM Password Policy"]
-  M1 --> AA["IAM Access Analyzer"]
+  TF --> CW["alerting-cloudwatch (log group + policy)"]
+  TF --> EB["detection-eventbridge (rules -> logs)"]
+  TF --> AL["alerting-alarms (metric filters + alarms)"]
+  TF --> SNS["alerting-sns (optional)"]
 
-  M2 --> CT["AWS CloudTrail (Management Events)"]
-  M2 --> S3["S3 Log Bucket (Hardened)"]
+  IAM --> PP["Account password policy"]
+  IAM --> AA["Access Analyzer"]
+
+  CTL --> CT["CloudTrail (management events)"]
+  CTL --> S3["S3 log bucket (hardened)"]
   CT --> S3
 
-  S3 --> PAB["Block Public Access"]
-  S3 --> ENC["SSE-S3 Encryption"]
-  S3 --> VER["Versioning"]
-  S3 --> TLS["HTTPS-only Policy"]
+  EB --> CWL["CloudWatch Log Group: detections"]
+  CW --> CWL
 
-  M3 --> GP["IAM Guardrail Policy (Explicit Deny)"]
-  GP --> DENY["Deny Public S3 Exposure"]
-
-  %% V2 - Detection
-  CT --> EB["EventBridge Detection Rules"]
-  EB --> CWL["CloudWatch Logs (Detections)"]
-  %% V2.2 - Alerting
-  CWL --> MF["CloudWatch Metric Filters"]
-  MF --> AL["CloudWatch Alarms"]
-
+  CWL --> MF["Metric Filters"]
+  MF --> A["CloudWatch Alarms"]
+  A --> SNS
 ```
-
-## 📦 Terraform Modules
-
-### `iam-baseline`
-
-- Enforces a strong IAM password policy
-- Enables IAM Access Analyzer to detect unintended external access
-
-### `cloudtrail-logging`
-
-- Enables AWS CloudTrail
-- Stores logs in a dedicated S3 bucket
-- Encryption at rest (SSE-S3)
-- HTTPS-only access enforced
-- Versioning enabled
-
-### `s3-guardrails`
-
-- IAM deny policies preventing:
-  - Making S3 buckets public
-  - Disabling S3 Public Access Block
-- Protects against common real-world misconfigurations
-### `alerting-cloudwatch` (V2)
-
-- CloudWatch Log Group dedicated to detection events
-- Short log retention (7 days) to control costs
-- Central sink for security-relevant activity
-
-### `detection-eventbridge` (V2)
-
-- EventBridge rules matching high-risk CloudTrail events:
-  - CloudTrail tampering
-  - IAM privilege escalation attempts
-  - Credential creation
-  - S3 exposure-related changes
-- Events forwarded to CloudWatch Logs for analysis
 ---
-## 🧪 Detection Testing
+## Terraform modules
 
-The following detection scenarios were manually tested:
+- **iam-baseline**
+  - Account password policy
+  - IAM Access Analyzer
 
-- **Credential creation**
-  - Action: `CreateAccessKey`
-  - Result: CloudTrail event detected
-  - Detection: EventBridge rule matched
-  - Outcome: CloudWatch metric incremented and alarm evaluated
+- **cloudtrail-logging**
+  - CloudTrail (management events)
+  - Hardened S3 log bucket
+  - Optional lifecycle expiration
+  - Optional KMS encryption
 
-- **IAM policy changes**
-  - Action: IAM policy attachment
-  - Result: Event captured and logged
+- **s3-guardrails**
+  - Explicit deny IAM policy preventing S3 public exposure
+  - Attachment to IAM user or role
 
-Detection events were visible in CloudWatch Logs under:
-`/aws/cloud-hardening-baseline/detections`
+- **alerting-cloudwatch**
+  - CloudWatch Logs log group for detections
+  - Resource policy allowing EventBridge to write logs
 
+- **detection-eventbridge**
+  - EventBridge rules for security-relevant CloudTrail events
+  - Log group as target
 
-### `alerting-alarms` (V2.2)
+- **alerting-alarms**
+  - CloudWatch metric filters
+  - CloudWatch alarms for:
+    - CloudTrail tampering
+    - IAM policy changes
+    - Credential creation
+    - S3 exposure attempts
 
-- CloudWatch metric filters applied to detection logs
-- CloudWatch alarms for:
-  - CloudTrail tampering
-  - IAM policy changes
-  - Credential creation
-  - S3 exposure attempts
-- Alerts designed to be SNS-ready but provider-agnostic
+- **alerting-sns**
+  - SNS topic
+  - Optional email subscription
 
-## 💰 Cost Control
+---
 
-This project is designed to be **free-tier friendly**.
+## Cost considerations
 
-Deliberately avoided services:
+This baseline is designed to remain **near $0** for a lab or portfolio environment:
 
+- CloudTrail uses management events only
+- CloudWatch Logs retention is limited
+- S3 lifecycle expiration is optional
+
+The following services are deliberately not used:
 - GuardDuty
 - Security Hub
 - VPC Flow Logs
+- OpenSearch / SIEM stacks
 - NAT Gateways
-- EC2 / RDS
-- OpenSearch
+- EC2 or persistent compute
 
-Cost guardrails are documented in `COST_GUARDRAILS.md`.
+**Important:** enabling KMS encryption (for S3, CloudWatch Logs, or SNS) may introduce additional costs.
 
 ---
-
-## 🚀 Usage
+## Usage
 
 ### Prerequisites
-
-- Terraform >= 1.5
-- (Optional) AWS CLI + credentials
-
-### Validate configuration (no AWS access required)
-
-```bash
+- Terraform `= 1.6`
+- AWS credentials (only required for `plan/apply`)
+- Aglobally-unique S3 bucket name for CloudTrail logs
+## Quick start (static validation)
+```Bash
 cd terraform
 terraform init
+terraform fmt -check
 terraform validate
 ```
-### Plan & Apply (optional, requires AWS credentials)
+## Deploy in AWS (lab)
+Create a `terraform.tfvars`:
+```hcl
+cloudtrail_log_bucket_name = "my-unique-cloudtrail-logs-123456"
+guardrails_target_name     = "my-iam-user-or-role"
+
+# Optional
+cw_log_retention_days      = 30
+cloudtrail_retention_days  = 0 # 0 disables expiration
+sns_email                  = null # set to "you@domain.com" to receive alerts
+```
+Then :
 ```bash
 terraform plan
 terraform apply
 ```
-
-### Destroy all resources
+## Destroy
 ```bash
 terraform destroy
 ```
-## ✅ AWS Validation
+---
+## Deployment notes
 
-This baseline has been deployed and tested on a real AWS account.
-
-The following components were validated in real conditions:
-- CloudTrail successfully logs management events
-- EventBridge rules capture high-risk CloudTrail events
-- Detection events are forwarded to CloudWatch Logs
-- Metric filters generate custom security metrics
-- CloudWatch alarms evaluate detection signals correctly
-
-All tests were performed using the AWS CLI to simulate real administrative actions.
-
-
-
+- Terraform state is ignored by default; for real usage, a remote encrypted backend is recommended.
+- Guardrail policies use explicit deny and can block destructive actions.
+  - In practice, Terraform should be executed using a dedicated role not restricted by the guardrails,
+    or guardrails should be attached after the baseline is deployed.
 
 ---
 
+## Detection testing (example scenarios)
 
+You can generate detections with AWS CLI actions such as:
 
-### 📚 Documentation
-- CIS mapping: docs/cis-mapping.md
+- `iam:CreateAccessKey`
 
-- Hardening decisions: docs/hardening-decisions.md
+- `iam:AttachUserPolicy`
+
+- `cloudtrail:StopLogging`
+
+- `s3:PutBucketPolicy`
+
+Detections are written to:
+- CloudWatch Logs: `/aws/cloud-hardening-baseline/detections` (default)
+
+Alarms:
+
+- `ALERT-CloudTrail-Tampering`
+
+- `ALERT-IAM-Policy-Changes`
+
+- `ALERT-Credential-Creation`
+
+- `ALERT-S3-Exposure-Attempt`
 ---
-### 🔒 Security Notes
-- No secrets are committed to Git
 
-- Terraform state files are ignored via .gitignore
+## Documentation
 
-- Preventive security controls use explicit deny policies
-
-- Designed for defensive (Blue Team) cloud security use cases
----
-## 🛣️ Roadmap
-
-- SNS notification integration (optional)
-- Automated response (Lambda remediation)
-- Organization-level guardrails (SCPs)
-- Incident response automation
-
----
-## ⚠️ Known Limitations
-
-- Alarms do not send notifications by default (SNS intentionally out of scope)
-- Event delivery may take up to a few minutes due to CloudTrail propagation
-- Guardrail policies may block Terraform destroy operations if attached to the execution principal
-- This project focuses on high-signal detections and does not aim for exhaustive coverage
-
-## 🧠 Security Design Notes
-
-- Explicit deny policies are used to enforce preventive controls
-- Event-driven detection was preferred over agent-based monitoring
-- Short log retention is used to minimize costs while preserving forensic value
-- Terraform execution identity should be separated from guarded principals in production
-
-
-This project focuses on **security design and defensive architecture**, rather than production deployment, and is intended as a learning and demonstration baseline for cloud defense.
-### 👤 Author
-Sacha Gatta-Boucard
-- Cloud Security / Blue Team oriented project
+- CIS mapping: `docs/cis-mapping.md`
+- Hardening decisions: `docs/hardening-decisions.md`
+- Detection logic: `docs/detection.md`
+- References: `docs/references.md`
+- Versioning policy: `docs/versioning.md`
+- Changelog: `docs/changelog.md`
 
 ---
 
-## ❓ FAQ
+## Known limitations
 
-**Is this deployed on AWS?**  
-No. This project is design-first and statically validated. Runtime behavior requires an AWS account.
+- Event propagation from CloudTrail to EventBridge is not instantaneous
+- This baseline does not aim to provide full security coverage
+- SNS notifications are optional
+- KMS usage may affect the cost model
 
-**Is alerting implemented?**  
-Alert logic is fully defined. Notification channels (SNS, email, Slack) are intentionally optional.
+---
 
-**Is this production-ready?**  
-This project is a learning and demonstration baseline, not a full production security platform.
+## Roadmap ideas
 
-**Why focus on EventBridge for detection?**  
-EventBridge provides low-cost, event-driven detection well-suited for high-signal CloudTrail events.
+- Allow using an existing SNS topic instead of always creating one
+- Add stricter CloudTrail S3 bucket policy conditions
+- Optional automated remediation (Lambda)
+- Organization-level deployment (SCPs, org trails)
 
+---
 
+## Author
 
+Sacha Gatta-Boucard  
+Cloud Security / Blue Team oriented portfolio project

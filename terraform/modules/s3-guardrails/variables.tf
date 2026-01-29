@@ -11,3 +11,9 @@ variable "target_type" {
     error_message = "target_type must be 'user' or 'role'."
   }
 }
+variable "enable_attachment" {
+  description = "Whether to attach the guardrails policy to the target principal."
+  type        = bool
+  default     = true
+}
+

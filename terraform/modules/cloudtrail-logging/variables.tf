@@ -32,3 +32,8 @@ variable "retention_days" {
   type        = number
   default     = 0
 }
+variable "enable_guardrails_attachment" {
+  description = "If true, attach the S3 guardrails policy to the target principal. If false, only create the policy."
+  type        = bool
+  default     = true
+}

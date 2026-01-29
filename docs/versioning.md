@@ -13,3 +13,19 @@ This project follows an incremental versioning approach.
 
 - **V2.2 (planned)**  
   Alerting on high-risk events (CloudWatch Alarms / SNS)
+
+## Project scope and validation
+
+This project is designed as a **security baseline and portfolio project**.
+
+- The Terraform code is fully deployable on a real AWS account.
+- The baseline has been tested in laboratory environments.
+- The project is intentionally scoped and does not claim production readiness.
+
+The primary goals are:
+- demonstrate cloud security hardening practices
+- show detection logic and alerting design
+- remain auditable and cost-aware
+
+The code can be statically validated without AWS access, but meaningful security
+testing requires deployment in a real AWS account.

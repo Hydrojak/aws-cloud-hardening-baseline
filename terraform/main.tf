@@ -13,10 +13,16 @@ module "cloudtrail_logging" {
 }
 
 module "s3_guardrails" {
-  source                    = "./modules/s3-guardrails"
+  source = "./modules/s3-guardrails"
+
   target_type               = var.guardrails_target_type
   target_iam_principal_name = var.guardrails_target_name
+
+  enable_attachment = var.enable_guardrails_attachment
 }
+
+
+
 
 # V2.1 - Detection + Logging
 module "alerting_cloudwatch" {
@@ -32,15 +38,20 @@ module "detection_eventbridge" {
 
 # V2.2 - Alerting (Alarms)
 module "alerting_sns" {
-  source     = "./modules/alerting-sns"
+  count     = var.create_sns_topic ? 1 : 0
+  source    = "./modules/alerting-sns"
   topic_name = var.sns_topic_name
   kms_key_arn = var.sns_kms_key_arn
 
   email_subscriptions = var.sns_email == null ? [] : [var.sns_email]
 }
 
+locals {
+  effective_sns_topic_arn = var.create_sns_topic ? module.alerting_sns[0].topic_arn : var.alarm_sns_topic_arn
+}
+
 module "alerting_alarms" {
   source         = "./modules/alerting-alarms"
   log_group_name = module.alerting_cloudwatch.log_group_name
-  sns_topic_arn  = module.alerting_sns.topic_arn
+  sns_topic_arn  = local.effective_sns_topic_arn
 }
