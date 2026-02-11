@@ -175,3 +175,21 @@ variable "cloudtrail_remediation_lambda_arn" {
   type        = string
   default     = null
 }
+variable "cloudtrail_enable_s3_data_events" { type = bool default = false }
+variable "cloudtrail_s3_data_event_bucket_arns" { type = list(string) default = [] }
+variable "cloudtrail_enable_lambda_data_events" { type = bool default = false }
+variable "cloudtrail_lambda_data_event_function_arns" { type = list(string) default = [] }
+variable "cloudtrail_data_events_read_write_type" { type = string default = "All" }
+
+variable "enable_guardduty_integration" { type = bool default = false }
+variable "guardduty_severity_min" { type = number default = 7 }
+
+variable "enable_securityhub_integration" { type = bool default = false }
+variable "securityhub_severity_labels" { type = list(string) default = ["HIGH","CRITICAL"] }
+variable "securityhub_record_states" { type = list(string) default = ["ACTIVE"] }
+variable "securityhub_workflow_states" { type = list(string) default = [] }
+variable "prefix" {
+  description = "Prefix used for resource names"
+  type        = string
+  default     = "baseline"
+}
