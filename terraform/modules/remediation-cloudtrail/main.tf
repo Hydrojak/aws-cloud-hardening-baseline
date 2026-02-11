@@ -87,6 +87,9 @@ resource "aws_lambda_function" "this" {
       IS_MULTI_REGION_TRAIL = tostring(var.is_multi_region_trail)
       LOG_BUCKET_NAME       = var.log_bucket_name
       KMS_KEY_ID            = var.kms_key_arn == null ? "" : var.kms_key_arn
+      S3_DATA_EVENT_BUCKET_ARNS_JSON       = jsonencode(var.s3_data_event_bucket_arns)
+      LAMBDA_DATA_EVENT_FUNCTION_ARNS_JSON = jsonencode(var.lambda_data_event_function_arns)
+      DATA_EVENTS_READ_WRITE_TYPE          = var.data_events_read_write_type
     }
   }
 

@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-
 import boto3
 
 LOG = logging.getLogger()
@@ -12,6 +11,9 @@ HOME_REGION = os.environ.get("HOME_REGION")
 IS_MULTI_REGION = os.environ.get("IS_MULTI_REGION_TRAIL", "true").lower() == "true"
 LOG_BUCKET_NAME = os.environ.get("LOG_BUCKET_NAME") or None
 KMS_KEY_ID = os.environ.get("KMS_KEY_ID") or None
+S3_DATA_EVENT_BUCKET_ARNS_JSON = os.getenv("S3_DATA_EVENT_BUCKET_ARNS_JSON", "[]")
+LAMBDA_DATA_EVENT_FUNCTION_ARNS_JSON = os.getenv("LAMBDA_DATA_EVENT_FUNCTION_ARNS_JSON", "[]")
+DATA_EVENTS_READ_WRITE_TYPE = os.getenv("DATA_EVENTS_READ_WRITE_TYPE", "All")
 
 BASE_EVENT_SELECTORS = [
     {
@@ -25,6 +27,42 @@ def _ct_client():
     # CloudTrail is regional; use the trail's home region.
     # If HOME_REGION isn't set, boto3 will fall back to the Lambda's AWS_REGION.
     return boto3.client("cloudtrail", region_name=HOME_REGION)
+def _load_json_list(v):
+    try:
+        data = json.loads(v)
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+def _build_baseline_event_selectors():
+    selectors = [{
+        "ReadWriteType": "All",
+        "IncludeManagementEvents": True,
+    }]
+
+    s3_arns = _load_json_list(S3_DATA_EVENT_BUCKET_ARNS_JSON)
+    lambda_arns = _load_json_list(LAMBDA_DATA_EVENT_FUNCTION_ARNS_JSON)
+
+    s3_values = [arn if arn.endswith("/") else arn + "/" for arn in s3_arns if isinstance(arn, str) and arn]
+    lambda_values = [arn for arn in lambda_arns if isinstance(arn, str) and arn]
+
+    if not s3_values and not lambda_values:
+        return selectors
+
+    rw = DATA_EVENTS_READ_WRITE_TYPE if DATA_EVENTS_READ_WRITE_TYPE in {"All", "ReadOnly", "WriteOnly"} else "All"
+
+    data_resources = []
+    if s3_values:
+        data_resources.append({"Type": "AWS::S3::Object", "Values": s3_values})
+    if lambda_values:
+        data_resources.append({"Type": "AWS::Lambda::Function", "Values": lambda_values})
+
+    selectors.append({
+        "ReadWriteType": rw,
+        "IncludeManagementEvents": False,
+        "DataResources": data_resources,
+    })
+    return selectors
 
 def handler(event, context):
     """EventBridge -> Lambda entry point.
@@ -69,8 +107,11 @@ def handler(event, context):
             ct.update_trail(**update_kwargs)
             actions.append("update_trail")
 
-            ct.put_event_selectors(TrailName=TRAIL_NAME, EventSelectors=BASE_EVENT_SELECTORS)
+            selectors = _build_baseline_event_selectors()
+            ct.put_event_selectors(TrailName=TRAIL_NAME, EventSelectors=selectors)
             actions.append("put_event_selectors")
+            LOG.info("applying_event_selectors=%s", json.dumps(selectors))
+
 
             ct.start_logging(Name=TRAIL_NAME)
             actions.append("start_logging_after_update")

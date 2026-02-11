@@ -36,3 +36,17 @@ variable "function_name" {
   type        = string
   default     = "baseline-cloudtrail-auto-remediation"
 }
+variable "s3_data_event_bucket_arns" {
+  type        = list(string)
+  default     = []
+}
+
+variable "lambda_data_event_function_arns" {
+  type        = list(string)
+  default     = []
+}
+
+variable "data_events_read_write_type" {
+  type        = string
+  default     = "All"
+}

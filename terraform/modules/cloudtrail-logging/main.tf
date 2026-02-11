@@ -2,7 +2,7 @@
 # NOTE: Without AWS credentials, you can validate syntax but not plan/apply.
 
 data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
+
 data "aws_partition" "current" {}
 
 locals {
@@ -13,6 +13,13 @@ locals {
   # For organization / centralized logging buckets, CloudTrail writes logs for multiple accounts under AWSLogs/<account-id>/...
   allow_multi_account_writes = var.allow_organization_log_writes || var.is_organization_trail
   cloudtrail_logs_resource   = local.allow_multi_account_writes ? "${aws_s3_bucket.trail_logs.arn}/AWSLogs/*" : "${aws_s3_bucket.trail_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+}
+locals {
+  s3_data_event_values = [for arn in var.s3_data_event_bucket_arns : (endswith(arn, "/") ? arn : "${arn}/")]
+
+  enable_s3_data_events_effective     = var.enable_s3_data_events && length(var.s3_data_event_bucket_arns) > 0
+  enable_lambda_data_events_effective = var.enable_lambda_data_events && length(var.lambda_data_event_function_arns) > 0
+  enable_data_events                  = local.enable_s3_data_events_effective || local.enable_lambda_data_events_effective
 }
 
 resource "aws_s3_bucket" "trail_logs" {
@@ -151,9 +158,35 @@ resource "aws_cloudtrail" "baseline" {
   # Optional CloudTrail KMS encryption (in addition to S3 bucket default encryption)
   kms_key_id = var.kms_key_arn
 
+  # Management events (déjà chez toi)
   event_selector {
     read_write_type           = "All"
     include_management_events = true
+  }
+
+  # Data events (optionnel)
+  dynamic "event_selector" {
+    for_each = local.enable_data_events ? [1] : []
+    content {
+      read_write_type           = var.data_events_read_write_type
+      include_management_events = false
+
+      dynamic "data_resource" {
+        for_each = local.enable_s3_data_events_effective ? [1] : []
+        content {
+          type   = "AWS::S3::Object"
+          values = local.s3_data_event_values
+        }
+      }
+
+      dynamic "data_resource" {
+        for_each = local.enable_lambda_data_events_effective ? [1] : []
+        content {
+          type   = "AWS::Lambda::Function"
+          values = var.lambda_data_event_function_arns
+        }
+      }
+    }
   }
 
   depends_on = [aws_s3_bucket_policy.trail_logs]
