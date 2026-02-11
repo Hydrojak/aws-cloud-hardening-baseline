@@ -17,6 +17,14 @@ This project is designed as a **Blue Team / Cloud Security portfolio baseline**:
 - Remain free-tier friendly and easy to reason about
 
 ---
+## Overview
+
+This Terraform baseline hardens AWS logging & detection by:
+- Enforcing a hardened CloudTrail configuration (multi-region, global services, log validation, optional KMS).
+- Optionally enabling CloudTrail **data events** (S3 object-level and/or Lambda invoke) for targeted resources.
+- Providing an EventBridge-triggered **auto-remediation Lambda** that restores CloudTrail settings if modified.
+- Routing high-severity findings from **GuardDuty** and **Security Hub** into a detections CloudWatch Log Group,
+  with metric filters + CloudWatch alarms (optional SNS notifications).
 
 ## What this baseline provides
 
@@ -79,7 +87,7 @@ This project is designed as a **Blue Team / Cloud Security portfolio baseline**:
 - Optional SNS topic for alert delivery
 - Optional email subscription for notifications
 - Allow using an existing SNS topic instead of always creating one”
-- Exemple tfvars avec `create_sns_topic=false` + `alarm_sns_topic_arn=...`
+- Example tfvars avec `create_sns_topic=false` + `alarm_sns_topic_arn=...`
 ---
 
 ### Optional automated remediation
@@ -112,23 +120,32 @@ flowchart TB
 
   TF --> REM["remediation-cloudtrail (optional)"]
   TF --> SCP["organizations-scp (optional)"]
+  TF --> GD["guardduty-integration (optional)"]
+  TF --> SH["securityhub-integration (optional)"]
 
   IAM --> PP["Account password policy"]
   IAM --> AA["Access Analyzer"]
 
-  CTL --> CT["CloudTrail (management events)"]
+  CTL --> CT["CloudTrail (management events + optional data events)"]
   CTL --> S3["S3 log bucket (hardened)"]
   CT --> S3
 
   EB --> CWL["CloudWatch Log Group: detections"]
   CW --> CWL
 
+  GD --> GDF["GuardDuty Findings"]
+  SH --> SHF["Security Hub Findings (Imported)"]
+  GDF --> CWL
+  SHF --> CWL
+
   CWL --> MF["Metric Filters"]
   MF --> A["CloudWatch Alarms"]
   A --> SNS
 
   EB --> REM
+
 ```
+All detection signals converge into a single `detections` CloudWatch Log Group, then become metrics and alarms (optional SNS).
 
 ---
 
@@ -181,6 +198,16 @@ flowchart TB
   - Service Control Policy
   - Organization-level enforcement
   - Optional exemption list
+  - 
+- **guardduty-integration (optional)**
+  - (Optional) GuardDuty detector enablement
+  - EventBridge rule to forward high-severity findings to detections log group
+  - Metric filter + alarm (optional SNS)
+
+- **securityhub-integration (optional)**
+  - (Optional) Security Hub enablement
+  - EventBridge rule to forward imported findings to detections log group
+  - Metric filter + alarm (optional SNS)
 
 ---
 
@@ -193,10 +220,19 @@ This baseline is designed to remain **near $0** for a lab or portfolio environme
 - S3 lifecycle expiration is optional
 - Lambda is invoked only on security events
 
+The following managed services are **optional** and disabled by default (can increase costs):
+
+- GuardDuty (optional integration)
+- Security Hub (optional integration)
+
+The baseline core does not require them and remains cost-conscious when they are disabled.
+
+**Note:** CloudTrail data events (S3 object-level / Lambda invoke) are also optional and may increase costs depending on volume.
+
+
 The following services are deliberately not used:
 
-- GuardDuty
-- Security Hub
+
 - VPC Flow Logs
 - OpenSearch / SIEM stacks
 - NAT Gateways
@@ -204,6 +240,15 @@ The following services are deliberately not used:
 
 **Important:** enabling KMS encryption may introduce additional costs.  
 Organization-level features require AWS Organizations permissions.
+
+## Optional managed services
+
+This baseline is designed to work without managed security services by default.
+However, it can optionally integrate:
+- GuardDuty (high severity findings → detections log group → alarms)
+- Security Hub (imported findings → detections log group → alarms)
+
+These are disabled by default for cost-conscious deployments.
 
 ---
 
@@ -231,18 +276,41 @@ terraform validate
 Create a `terraform.tfvars`:
 
 ```hcl
+prefix = "baseline"
+
 cloudtrail_log_bucket_name = "my-unique-cloudtrail-logs-123456"
 guardrails_target_name     = "my-iam-user-or-role"
 
-# Optional
+# Logging / Retention
 cw_log_retention_days      = 30
 cloudtrail_retention_days  = 0 # 0 disables expiration
-sns_email                  = null # set to "you@domain.com" to receive alerts
 
-# Advanced options
+# Notifications (optional)
+sns_email                  = null # set to "you@domain.com" to receive alerts
+create_sns_topic           = true
+alarm_sns_topic_arn        = null # set if create_sns_topic=false
+
+# CloudTrail remediation (optional)
 enable_cloudtrail_auto_remediation = false
 cloudtrail_is_organization_trail   = false
 enable_org_scp                     = false
+
+# CloudTrail data events (optional; can add cost)
+cloudtrail_enable_s3_data_events     = false
+cloudtrail_s3_data_event_bucket_arns = []
+cloudtrail_enable_lambda_data_events = false
+cloudtrail_lambda_data_event_function_arns = []
+cloudtrail_data_events_read_write_type = "All" # All | ReadOnly | WriteOnly
+
+# Managed detections integrations (optional; can add cost)
+enable_guardduty_integration   = false
+guardduty_severity_min         = 7
+
+enable_securityhub_integration = false
+securityhub_severity_labels    = ["HIGH", "CRITICAL"]
+securityhub_record_states      = ["ACTIVE"]
+securityhub_workflow_states    = []
+
 ```
 
 Then:
@@ -289,6 +357,9 @@ Alarms:
 - `ALERT-IAM-Policy-Changes`
 - `ALERT-Credential-Creation`
 - `ALERT-S3-Exposure-Attempt`
+  When optional integrations are enabled:
+- `ALERT-GuardDuty-High-Severity`
+- `ALERT-SecurityHub-High-Severity`
 
 ---
 
@@ -316,10 +387,8 @@ Alarms:
 ## Roadmap ideas
 
 - Allow using an existing SNS topic instead of always creating one
-- Extend auto-remediation logic
-- Add data event logging options (cost-aware toggle)
-- Add GuardDuty integration module
-- Add Security Hub integration module
+- Extend auto-remediation logic (e.g., additional CloudTrail hardening checks)
+- Multi-account / Organizations: delegated admin + central findings/log aggregation
 
 ---
 
