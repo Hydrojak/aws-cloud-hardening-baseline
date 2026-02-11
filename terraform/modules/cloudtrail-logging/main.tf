@@ -4,6 +4,17 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 data "aws_partition" "current" {}
+
+locals {
+  # Trail ARN used in S3 bucket policy conditions (to mitigate confused deputy issues)
+  strict_trail_arn   = "arn:${data.aws_partition.current.partition}:cloudtrail:${var.trail_home_region}:${data.aws_caller_identity.current.account_id}:trail/${var.trail_name}"
+  wildcard_trail_arn = "arn:${data.aws_partition.current.partition}:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/${var.trail_name}"
+
+  # For organization / centralized logging buckets, CloudTrail writes logs for multiple accounts under AWSLogs/<account-id>/...
+  allow_multi_account_writes = var.allow_organization_log_writes || var.is_organization_trail
+  cloudtrail_logs_resource   = local.allow_multi_account_writes ? "${aws_s3_bucket.trail_logs.arn}/AWSLogs/*" : "${aws_s3_bucket.trail_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+}
+
 resource "aws_s3_bucket" "trail_logs" {
   bucket        = var.log_bucket_name
   force_destroy = var.force_destroy_bucket
@@ -97,14 +108,16 @@ resource "aws_s3_bucket_policy" "trail_logs" {
         Effect    = "Allow"
         Principal = { Service = "cloudtrail.amazonaws.com" }
         Action    = "s3:PutObject"
-        Resource  = "${aws_s3_bucket.trail_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+        Resource  = local.cloudtrail_logs_resource
         Condition = {
           StringEquals = {
             "s3:x-amz-acl"      = "bucket-owner-full-control"
             "aws:SourceAccount" = data.aws_caller_identity.current.account_id
           }
-          ArnLike = {
-            "aws:SourceArn" = "arn:${data.aws_partition.current.partition}:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/${var.trail_name}"
+          # If strict_trail_source_arn is enabled, restrict to the exact trail ARN in trail_home_region.
+          # Otherwise, allow any region in the ARN (less strict, but more flexible).
+          (var.strict_trail_source_arn ? "ArnEquals" : "ArnLike") = {
+            "aws:SourceArn" = var.strict_trail_source_arn ? local.strict_trail_arn : local.wildcard_trail_arn
           }
         }
       },
@@ -118,8 +131,8 @@ resource "aws_s3_bucket_policy" "trail_logs" {
           StringEquals = {
             "aws:SourceAccount" = data.aws_caller_identity.current.account_id
           }
-          ArnLike = {
-            "aws:SourceArn" = "arn:${data.aws_partition.current.partition}:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/${var.trail_name}"
+          (var.strict_trail_source_arn ? "ArnEquals" : "ArnLike") = {
+            "aws:SourceArn" = var.strict_trail_source_arn ? local.strict_trail_arn : local.wildcard_trail_arn
           }
         }
       }
@@ -127,13 +140,16 @@ resource "aws_s3_bucket_policy" "trail_logs" {
   })
 }
 
-
 resource "aws_cloudtrail" "baseline" {
   name                          = var.trail_name
   s3_bucket_name                = aws_s3_bucket.trail_logs.bucket
   include_global_service_events = true
   is_multi_region_trail         = var.is_multi_region_trail
   enable_log_file_validation    = true
+  is_organization_trail         = var.is_organization_trail
+
+  # Optional CloudTrail KMS encryption (in addition to S3 bucket default encryption)
+  kms_key_id = var.kms_key_arn
 
   event_selector {
     read_write_type           = "All"

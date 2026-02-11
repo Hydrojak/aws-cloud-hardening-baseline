@@ -112,4 +112,66 @@ variable "enable_guardrails_attachment" {
   type        = bool
   default     = true
 }
+# Roadmap: stricter CloudTrail bucket policy conditions
+variable "cloudtrail_strict_trail_source_arn" {
+  description = "If true, restrict the CloudTrail S3 bucket policy to the exact trail ARN in aws_region (instead of wildcard region)."
+  type        = bool
+  default     = true
+}
 
+# Roadmap: org-level trails write multiple account IDs under AWSLogs/*
+variable "cloudtrail_allow_organization_log_writes" {
+  description = "If true, allow CloudTrail to write to AWSLogs/* in the S3 bucket policy (required for organization trails / centralized logging)."
+  type        = bool
+  default     = false
+}
+
+variable "cloudtrail_is_organization_trail" {
+  description = "If true, create an organization trail (must be applied from the AWS Organizations management account)."
+  type        = bool
+  default     = false
+}
+
+# Roadmap: Optional automated remediation (Lambda)
+variable "enable_cloudtrail_auto_remediation" {
+  description = "If true, deploy a Lambda that attempts to re-enable baseline CloudTrail settings when tampering is detected."
+  type        = bool
+  default     = false
+}
+
+variable "remediation_log_retention_days" {
+  description = "Retention (days) for the remediation Lambda CloudWatch Log Group"
+  type        = number
+  default     = 14
+}
+
+# Roadmap: Organization-level deployment (SCPs)
+variable "enable_org_scp" {
+  description = "If true, create and attach an AWS Organizations SCP (must be applied from the management account)."
+  type        = bool
+  default     = false
+}
+
+variable "org_scp_target_id" {
+  description = "Organizations target to attach the SCP to (root/OU/account id, e.g. r-xxxx, ou-xxxx-xxxx, or 123456789012)."
+  type        = string
+  default     = null
+}
+
+variable "org_scp_name" {
+  description = "Name for the SCP policy"
+  type        = string
+  default     = "baseline-cloud-hardening-scp"
+}
+
+variable "org_scp_exempt_principal_arns" {
+  description = "Optional list of principal ARNs that should NOT be affected by the SCP denies (e.g. your break-glass / Terraform admin role)."
+  type        = list(string)
+  default     = []
+}
+
+variable "cloudtrail_remediation_lambda_arn" {
+  description = "Optional remediation Lambda ARN (null disables auto-remediation target)."
+  type        = string
+  default     = null
+}

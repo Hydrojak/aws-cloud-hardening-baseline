@@ -102,3 +102,21 @@ resource "aws_cloudwatch_event_target" "s3_exposure_changes_to_logs" {
   target_id = "cwlogs"
   arn       = var.log_group_arn
 }
+
+# Optional: invoke an auto-remediation Lambda when CloudTrail tampering is detected
+resource "aws_cloudwatch_event_target" "cloudtrail_tampering_to_lambda" {
+  count     = var.cloudtrail_remediation_lambda_arn == null ? 0 : 1
+  rule      = aws_cloudwatch_event_rule.cloudtrail_tampering.name
+  target_id = "remediation"
+  arn       = var.cloudtrail_remediation_lambda_arn
+}
+
+resource "aws_lambda_permission" "allow_eventbridge_invoke_cloudtrail_remediation" {
+  count         = var.cloudtrail_remediation_lambda_arn == null ? 0 : 1
+  statement_id  = "AllowExecutionFromEventBridgeCloudTrailTampering"
+  action        = "lambda:InvokeFunction"
+  function_name = var.cloudtrail_remediation_lambda_arn
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.cloudtrail_tampering.arn
+}
+
