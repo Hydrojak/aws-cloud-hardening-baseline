@@ -12,6 +12,11 @@ module "cloudtrail_logging" {
   retention_days        = var.cloudtrail_retention_days
 }
 
+module "s3_account_baseline" {
+  source = "./modules/s3-account-baseline"
+}
+
+
 module "s3_guardrails" {
   source = "./modules/s3-guardrails"
 
@@ -54,4 +59,52 @@ module "alerting_alarms" {
   source         = "./modules/alerting-alarms"
   log_group_name = module.alerting_cloudwatch.log_group_name
   sns_topic_arn  = local.effective_sns_topic_arn
+}
+
+module "cloudtrail_logging" {
+  source                = "./modules/cloudtrail-logging"
+  log_bucket_name       = var.cloudtrail_log_bucket_name
+  trail_name            = var.cloudtrail_trail_name
+  is_multi_region_trail = var.cloudtrail_is_multi_region
+  force_destroy_bucket  = var.cloudtrail_force_destroy_bucket
+  kms_key_arn           = var.cloudtrail_kms_key_arn
+  retention_days        = var.cloudtrail_retention_days
+
+  # Roadmap: stricter bucket policy conditions + org-level trail support
+  trail_home_region             = var.aws_region
+  strict_trail_source_arn       = var.cloudtrail_strict_trail_source_arn
+  allow_organization_log_writes = var.cloudtrail_allow_organization_log_writes
+  is_organization_trail         = var.cloudtrail_is_organization_trail
+}
+
+# Roadmap: Optional automated remediation (Lambda)
+module "remediation_cloudtrail" {
+  count  = var.enable_cloudtrail_auto_remediation ? 1 : 0
+  source = "./modules/remediation-cloudtrail"
+
+  trail_name            = var.cloudtrail_trail_name
+  home_region           = var.aws_region
+  is_multi_region_trail = var.cloudtrail_is_multi_region
+
+  log_bucket_name = var.cloudtrail_log_bucket_name
+  kms_key_arn     = var.cloudtrail_kms_key_arn
+
+  log_retention_days = var.remediation_log_retention_days
+}
+
+# Roadmap: Organization-level deployment (SCPs)
+module "organizations_scp" {
+  count  = var.enable_org_scp ? 1 : 0
+  source = "./modules/organizations-scp"
+
+  target_id             = var.org_scp_target_id
+  policy_name           = var.org_scp_name
+  exempt_principal_arns = var.org_scp_exempt_principal_arns
+}
+
+module "detection_eventbridge" {
+  source        = "./modules/detection-eventbridge"
+  log_group_arn = module.alerting_cloudwatch.log_group_arn
+
+  cloudtrail_remediation_lambda_arn = var.enable_cloudtrail_auto_remediation ? module.remediation_cloudtrail[0].lambda_arn : null
 }

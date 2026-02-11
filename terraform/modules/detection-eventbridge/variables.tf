@@ -8,3 +8,8 @@ variable "prefix" {
   type        = string
   default     = "baseline-detect"
 }
+variable "cloudtrail_remediation_lambda_arn" {
+  description = "Optional Lambda ARN to invoke on CloudTrail tampering events (auto-remediation)."
+  type        = string
+  default     = null
+}
