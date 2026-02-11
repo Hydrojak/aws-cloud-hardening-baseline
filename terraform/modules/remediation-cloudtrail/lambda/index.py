@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import boto3
+from typing import List, Dict, Any
 
 LOG = logging.getLogger()
 LOG.setLevel(logging.INFO)
@@ -15,13 +16,7 @@ S3_DATA_EVENT_BUCKET_ARNS_JSON = os.getenv("S3_DATA_EVENT_BUCKET_ARNS_JSON", "[]
 LAMBDA_DATA_EVENT_FUNCTION_ARNS_JSON = os.getenv("LAMBDA_DATA_EVENT_FUNCTION_ARNS_JSON", "[]")
 DATA_EVENTS_READ_WRITE_TYPE = os.getenv("DATA_EVENTS_READ_WRITE_TYPE", "All")
 
-BASE_EVENT_SELECTORS = [
-    {
-        "ReadWriteType": "All",
-        "IncludeManagementEvents": True,
-        # No data events by default (cost-conscious baseline)
-    }
-]
+
 
 def _ct_client():
     # CloudTrail is regional; use the trail's home region.
@@ -31,11 +26,12 @@ def _load_json_list(v):
     try:
         data = json.loads(v)
         return data if isinstance(data, list) else []
-    except Exception:
+    except (json.JSONDecodeError, TypeError, ValueError):
         return []
 
-def _build_baseline_event_selectors():
-    selectors = [{
+
+def _build_baseline_event_selectors() -> List[Dict[str, Any]]:
+    selectors: List[Dict[str, Any]] = [{
         "ReadWriteType": "All",
         "IncludeManagementEvents": True,
     }]
@@ -51,20 +47,22 @@ def _build_baseline_event_selectors():
 
     rw = DATA_EVENTS_READ_WRITE_TYPE if DATA_EVENTS_READ_WRITE_TYPE in {"All", "ReadOnly", "WriteOnly"} else "All"
 
-    data_resources = []
+    data_resources: List[Dict[str, Any]] = []
     if s3_values:
         data_resources.append({"Type": "AWS::S3::Object", "Values": s3_values})
     if lambda_values:
         data_resources.append({"Type": "AWS::Lambda::Function", "Values": lambda_values})
 
     selectors.append({
-        "ReadWriteType": rw,
+        "ReadWriteType": str(rw),
         "IncludeManagementEvents": False,
         "DataResources": data_resources,
     })
     return selectors
 
-def handler(event, context):
+
+def handler(event, _context):
+
     """EventBridge -> Lambda entry point.
 
     Conservative remediation:
@@ -107,8 +105,16 @@ def handler(event, context):
             ct.update_trail(**update_kwargs)
             actions.append("update_trail")
 
+
             selectors = _build_baseline_event_selectors()
-            ct.put_event_selectors(TrailName=TRAIL_NAME, EventSelectors=selectors)
+
+            ct.put_event_selectors(
+                TrailName=TRAIL_NAME,
+                EventSelectors=selectors,
+            )
+
+
+
             actions.append("put_event_selectors")
             LOG.info("applying_event_selectors=%s", json.dumps(selectors))
 
