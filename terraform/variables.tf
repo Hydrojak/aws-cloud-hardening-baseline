@@ -175,21 +175,80 @@ variable "cloudtrail_remediation_lambda_arn" {
   type        = string
   default     = null
 }
-variable "cloudtrail_enable_s3_data_events" { type = bool default = false }
-variable "cloudtrail_s3_data_event_bucket_arns" { type = list(string) default = [] }
-variable "cloudtrail_enable_lambda_data_events" { type = bool default = false }
-variable "cloudtrail_lambda_data_event_function_arns" { type = list(string) default = [] }
-variable "cloudtrail_data_events_read_write_type" { type = string default = "All" }
+variable "cloudtrail_enable_s3_data_events" {
+  type    = bool
+  default = false
+}
+variable "cloudtrail_s3_data_event_bucket_arns" {
+  type    = list(string)
+  default = []
+}
+variable "cloudtrail_enable_lambda_data_events" {
+  type    = bool
+  default = false
+}
+variable "cloudtrail_lambda_data_event_function_arns" {
+  type    = list(string)
+  default = []
+}
+variable "cloudtrail_data_events_read_write_type" {
+  type    = string
+  default = "All"
+}
 
-variable "enable_guardduty_integration" { type = bool default = false }
-variable "guardduty_severity_min" { type = number default = 7 }
+variable "enable_guardduty_integration" {
+  type    = bool
+  default = false
+}
+variable "guardduty_severity_min" {
+  type    = number
+  default = 7
+}
 
-variable "enable_securityhub_integration" { type = bool default = false }
-variable "securityhub_severity_labels" { type = list(string) default = ["HIGH","CRITICAL"] }
-variable "securityhub_record_states" { type = list(string) default = ["ACTIVE"] }
-variable "securityhub_workflow_states" { type = list(string) default = [] }
+variable "enable_securityhub_integration" {
+  type    = bool
+  default = false
+}
+variable "securityhub_severity_labels" {
+  type    = list(string)
+  default = ["HIGH", "CRITICAL"]
+}
+variable "securityhub_record_states" {
+  type    = list(string)
+  default = ["ACTIVE"]
+}
+variable "securityhub_workflow_states" {
+  type    = list(string)
+  default = []
+}
 variable "prefix" {
   description = "Prefix used for resource names"
   type        = string
   default     = "baseline"
+}
+
+variable "organization_id" {
+  type    = string
+  default = null
+}
+variable "object_lock_days" {
+  type    = number
+  default = 0
+  validation {
+    condition     = var.object_lock_days >= 0 && floor(var.object_lock_days) == var.object_lock_days
+    error_message = "Retention must be a whole number of days."
+  }
+}
+
+variable "manage_guardduty_detector" {
+  type    = bool
+  default = false
+}
+variable "manage_securityhub_account" {
+  type    = bool
+  default = false
+}
+variable "enable_trail_monitor" {
+  type    = bool
+  default = false
 }

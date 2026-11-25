@@ -108,7 +108,7 @@ resource "aws_cloudwatch_log_metric_filter" "s3_exposure" {
   name           = "detect-s3-exposure"
   log_group_name = var.log_group_name
 
-  pattern = "{ ($.detail.eventSource = \"s3.amazonaws.com\") && ( $.detail.eventName = \"PutBucketAcl\" || $.detail.eventName = \"PutBucketPolicy\" || $.detail.eventName = \"DeleteBucketPolicy\" || $.detail.eventName = \"PutBucketPublicAccessBlock\" ) }"
+  pattern = "{ ($.detail.eventSource = \"s3.amazonaws.com\") && ( $.detail.eventName = \"PutBucketAcl\" || $.detail.eventName = \"PutBucketPolicy\" || $.detail.eventName = \"DeleteBucketPolicy\" || $.detail.eventName = \"PutBucketPublicAccessBlock\" || $.detail.eventName = \"DeleteBucketPublicAccessBlock\" || $.detail.eventName = \"PutAccountPublicAccessBlock\" || $.detail.eventName = \"DeleteAccountPublicAccessBlock\" || $.detail.eventName = \"PutPublicAccessBlock\" || $.detail.eventName = \"DeletePublicAccessBlock\" ) }"
 
   metric_transformation {
     name      = "S3ExposureAttempts"

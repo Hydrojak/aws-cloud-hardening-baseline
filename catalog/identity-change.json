@@ -1,0 +1,32 @@
+{
+  "source": [
+    "aws.iam"
+  ],
+  "detail-type": [
+    "AWS API Call via CloudTrail"
+  ],
+  "detail": {
+    "eventSource": [
+      "iam.amazonaws.com"
+    ],
+    "eventName": [
+      "CreateAccessKey",
+      "CreateLoginProfile",
+      "UpdateLoginProfile",
+      "UpdateAssumeRolePolicy",
+      "AttachRolePolicy",
+      "AttachUserPolicy",
+      "AttachGroupPolicy",
+      "PutRolePolicy",
+      "PutUserPolicy",
+      "PutGroupPolicy",
+      "CreatePolicy",
+      "CreatePolicyVersion",
+      "SetDefaultPolicyVersion",
+      "DeleteVirtualMFADevice",
+      "DeactivateMFADevice",
+      "DeleteAccountPasswordPolicy",
+      "UpdateAccountPasswordPolicy"
+    ]
+  }
+}

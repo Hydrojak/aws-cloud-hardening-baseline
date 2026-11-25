@@ -1,0 +1,62 @@
+{
+  "scanner": "Trivy 0.76.2",
+  "checks": "embedded; static, default inputs",
+  "findings": [
+    {
+      "severity": "LOW",
+      "id": "AWS-0162",
+      "file": "stacks/management/main.tf",
+      "resource": "aws_cloudtrail.organization",
+      "title": "CloudTrail logs should be stored in S3 and also sent to CloudWatch Logs"
+    },
+    {
+      "severity": "LOW",
+      "id": "AWS-0089",
+      "file": "stacks/state/main.tf",
+      "resource": "aws_s3_bucket.state",
+      "title": "S3 Bucket Logging"
+    },
+    {
+      "severity": "LOW",
+      "id": "AWS-0089",
+      "file": "terraform/modules/cloudtrail-logging/main.tf",
+      "resource": "module.archive",
+      "title": "S3 Bucket Logging"
+    },
+    {
+      "severity": "LOW",
+      "id": "AWS-0089",
+      "file": "terraform/modules/cloudtrail-logging/main.tf",
+      "resource": "module.cloudtrail_logging",
+      "title": "S3 Bucket Logging"
+    },
+    {
+      "severity": "HIGH",
+      "id": "AWS-0132",
+      "file": "terraform/modules/cloudtrail-logging/main.tf",
+      "resource": "module.cloudtrail_logging",
+      "title": "S3 encryption should use Customer Managed Keys"
+    },
+    {
+      "severity": "LOW",
+      "id": "AWS-0162",
+      "file": "terraform/modules/cloudtrail-logging/main.tf",
+      "resource": "module.cloudtrail_logging",
+      "title": "CloudTrail logs should be stored in S3 and also sent to CloudWatch Logs"
+    },
+    {
+      "severity": "LOW",
+      "id": "AWS-0017",
+      "file": "terraform/modules/remediation-cloudtrail/main.tf",
+      "resource": "module.monitor",
+      "title": "CloudWatch log groups should be encrypted using CMK"
+    },
+    {
+      "severity": "LOW",
+      "id": "AWS-0066",
+      "file": "terraform/modules/remediation-cloudtrail/main.tf",
+      "resource": "module.monitor",
+      "title": "Lambda functions should have X-Ray tracing enabled"
+    }
+  ]
+}

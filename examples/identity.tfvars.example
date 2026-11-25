@@ -1,0 +1,5 @@
+account_id          = "111111111111"
+home_region         = "eu-west-1"
+instance_arn        = "arn:aws:sso:::instance/ssoins-1234567890123456"
+security_group_id   = "12345678-1234-1234-1234-123456789012"
+security_account_id = "333333333333"

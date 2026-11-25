@@ -1,111 +1,11 @@
-# Cost Guardrails
+# Coûts et portée
 
-This document explains the **cost-related design decisions** made in this project.
+Le profil lab exploite les événements de gestion, quatre alarmes historiques et une courte rétention CloudWatch. Les événements de données S3/Lambda, les détecteurs gérés, le contrôle périodique et les clés personnalisées peuvent augmenter le coût. Le bucket lab utilise SSE-S3 par défaut. Un chevauchement avec un trail existant peut rendre des copies supplémentaires facturables.
 
-The goal is to demonstrate a **cloud security baseline** that remains **usable, auditable, and affordable**, especially for learning, testing, and small environments.
+En organisation, le nombre de rôles et de règles croît avec le nombre de couples compte/région. Compter le trafic intercomptes EventBridge, l’ingestion et la rétention Logs, les alarmes par catégorie, les files d’échec, les requêtes et le stockage S3, les appels Lambda et les clés KMS. Par défaut chaque compte avec un backend reçoit une clé d’état. L’archive possède sa propre clé. Chaque topic SNS créé pour une région de membre possède une clé d’alerte. Un topic régional déjà géré peut être renseigné dans `regional_alert_topics`. Les clés préexistantes et les producteurs doivent alors être autorisés à publier.
 
----
+`object_lock_days=30` et `retention_days=365` sont des choix de départ pour l’archive organisation. Dans un bucket versionné, l’expiration crée généralement un marqueur de suppression. Le délai des versions non courantes est calculé à partir du passage en version non courante et peut prolonger la conservation totale. Une exigence de durée maximale impose de définir et tester cette politique avec le propriétaire des données.
 
-## 🎯 Cost Control Objectives
+`monthly_budget_usd` surveille le périmètre de facturation du compte de management et peut inclure les comptes liés. L’exemple règle une alerte à 80 % du coût mensuel réel. Il ne plafonne pas la facture. Estimer les volumes réels avant d’activer Runtime Monitoring, AI Protection, Security Hub V2 ou les standards CSPM. Certaines vérifications CSPM nécessitent aussi un recorder AWS Config dans les régions concernées.
 
-- Keep the baseline compatible with AWS Free Tier whenever possible
-- Avoid services with unpredictable or high recurring costs
-- Prefer event-driven and serverless components
-- Maintain visibility without over-collecting data
-
----
-
-## 🧱 Services Explicitly Used (Low / Predictable Cost)
-
-### AWS CloudTrail
-- Management events only
-- Single-region trail
-- Logs stored in S3 (low storage cost)
-- No data events enabled
-
-**Reasoning:**  
-CloudTrail is essential for auditability and security visibility. Management events provide high value at minimal cost.
-
----
-
-### Amazon S3 (Log Storage)
-- Single bucket for centralized logging
-- Versioning enabled
-- Public access fully blocked
-- No lifecycle transitions to other storage classes
-
-**Reasoning:**  
-S3 is cost-effective for log storage and allows long-term retention if needed.
-
----
-
-### Amazon EventBridge
-- Event-based detections
-- No polling or persistent compute
-- Only high-signal CloudTrail events are matched
-
-**Reasoning:**  
-EventBridge provides near real-time detection at very low cost compared to continuous log scanning.
-
----
-
-### Amazon CloudWatch Logs
-- Dedicated log group for detection events
-- Short retention period (7 days)
-- Logs only include security-relevant events
-
-**Reasoning:**  
-Short retention reduces storage costs while preserving immediate forensic visibility.
-
----
-
-### Amazon CloudWatch Metrics & Alarms
-- Custom metrics generated from detection logs
-- Simple threshold-based alarms
-- No notifications configured by default
-
-**Reasoning:**  
-Metrics and alarms provide visibility with minimal ongoing cost.
-
----
-
-## 🚫 Services Intentionally Excluded (Cost-Avoidance)
-
-The following services were intentionally not enabled in this baseline:
-
-- **GuardDuty**
-- **Security Hub**
-- **VPC Flow Logs**
-- **NAT Gateways**
-- **EC2 / EKS / RDS**
-- **OpenSearch / Elasticsearch**
-- **AWS Config**
-
-**Reasoning:**  
-These services can generate significant costs and are better introduced after a baseline is validated and operational needs are clearly defined.
-
----
-
-## 🧠 Cost-Security Trade-offs
-
-- High-signal detections were preferred over exhaustive coverage
-- Short log retention favors cost efficiency over long-term forensics
-- No automated remediation or notifications to avoid unintended costs
-- The baseline is designed for **learning, demonstration, and small-scale environments**
-
----
-
-## ⚠️ Cost Awareness Notes
-
-- CloudTrail log volume increases with account activity
-- CloudWatch Logs and metrics generate costs proportional to usage
-- Alarms incur minor monthly charges
-- Costs should be monitored if extended to production environments
-
----
-
-## ✅ Summary
-
-This project demonstrates that a **useful cloud security baseline** can be implemented without relying on expensive managed services.
-
-Cost control is treated as a **security requirement**, not an afterthought.
+[Tarification CloudTrail](https://aws.amazon.com/cloudtrail/pricing/) · [EventBridge](https://aws.amazon.com/eventbridge/pricing/) · [CloudWatch](https://aws.amazon.com/cloudwatch/pricing/) · [KMS](https://aws.amazon.com/kms/pricing/) · [GuardDuty](https://aws.amazon.com/guardduty/pricing/) · [Security Hub](https://aws.amazon.com/security-hub/pricing/).

@@ -4,6 +4,6 @@ output "log_bucket_name" {
 }
 
 output "trail_name" {
-  value       = aws_cloudtrail.baseline.name
+  value       = try(aws_cloudtrail.baseline[0].name, null)
   description = "CloudTrail trail name"
 }

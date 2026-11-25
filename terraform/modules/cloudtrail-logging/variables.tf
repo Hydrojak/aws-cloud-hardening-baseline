@@ -12,7 +12,7 @@ variable "log_bucket_name" {
 variable "force_destroy_bucket" {
   description = "If true, allow destroying bucket even if it contains objects (useful for labs)"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "is_multi_region_trail" {
@@ -87,4 +87,30 @@ variable "data_events_read_write_type" {
     condition     = contains(["All", "ReadOnly", "WriteOnly"], var.data_events_read_write_type)
     error_message = "data_events_read_write_type must be All, ReadOnly, or WriteOnly."
   }
+}
+
+variable "organization_id" {
+  type    = string
+  default = null
+}
+variable "object_lock_days" {
+  type    = number
+  default = 0
+  validation {
+    condition     = var.object_lock_days >= 0 && floor(var.object_lock_days) == var.object_lock_days
+    error_message = "Retention must be a whole number of days."
+  }
+}
+variable "trail_owner_id" {
+  type    = string
+  default = null
+}
+variable "create_trail" {
+  type    = bool
+  default = true
+}
+variable "use_kms" {
+  description = "Explicit at plan time when a KMS ARN is created in this same plan."
+  type        = bool
+  default     = null
 }

@@ -1,0 +1,20 @@
+name: Baseline V3 verification
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
+        with:
+          terraform_version: 1.14.7
+          terraform_wrapper: false
+      - name: Test Terraform, the trail monitor and detection rules
+        env:
+          AWS_EC2_METADATA_DISABLED: "true"
+        run: bash scripts/check.sh ci

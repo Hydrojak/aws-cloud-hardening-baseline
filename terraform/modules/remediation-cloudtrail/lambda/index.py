@@ -1,132 +1,69 @@
+"""Reconcile one explicitly owned trail. AWS clients are created only in the handler."""
 import json
 import logging
 import os
-import boto3
-from typing import List, Dict, Any
 
 LOG = logging.getLogger()
 LOG.setLevel(logging.INFO)
 
-TRAIL_NAME = os.environ.get("TRAIL_NAME", "")
-HOME_REGION = os.environ.get("HOME_REGION")
-IS_MULTI_REGION = os.environ.get("IS_MULTI_REGION_TRAIL", "true").lower() == "true"
-LOG_BUCKET_NAME = os.environ.get("LOG_BUCKET_NAME") or None
-KMS_KEY_ID = os.environ.get("KMS_KEY_ID") or None
-S3_DATA_EVENT_BUCKET_ARNS_JSON = os.getenv("S3_DATA_EVENT_BUCKET_ARNS_JSON", "[]")
-LAMBDA_DATA_EVENT_FUNCTION_ARNS_JSON = os.getenv("LAMBDA_DATA_EVENT_FUNCTION_ARNS_JSON", "[]")
-DATA_EVENTS_READ_WRITE_TYPE = os.getenv("DATA_EVENTS_READ_WRITE_TYPE", "All")
+
+def normalized(selectors):
+    """CloudTrail can reorder selectors and include empty optional fields."""
+    result = []
+    for item in selectors:
+        resources = sorted((r["Type"], sorted(r["Values"])) for r in item.get("DataResources", []))
+        result.append((item["ReadWriteType"], item["IncludeManagementEvents"],
+                       sorted(item.get("ExcludeManagementEventSources", [])), resources))
+    return sorted(result)
 
 
+def reconcile(client, event, cfg):
+    arn = cfg["TRAIL_ARN"]
+    scheduled = event.get("source") == "aws.events" and event.get("detail-type") == "Scheduled Event"
+    detail = event.get("detail", {})
+    if not scheduled:
+        params = detail.get("requestParameters") or {}
+        issuer = detail.get("userIdentity", {}).get("sessionContext", {}).get("sessionIssuer", {}).get("arn")
+        if (event.get("source") != "aws.cloudtrail" or detail.get("eventSource") != "cloudtrail.amazonaws.com"
+                or event.get("account") != arn.split(":")[4] or event.get("region") != cfg["HOME_REGION"]
+                or detail.get("errorCode") or issuer == cfg["ROLE_ARN"]
+                or (params.get("name") or params.get("trailName")) not in {arn, arn.split("/")[-1]}):
+            return "ignored"
+        if detail.get("eventName") not in {"DeleteTrail", "StopLogging", "UpdateTrail", "PutEventSelectors", "PutInsightSelectors"}:
+            return "ignored"
+        if detail["eventName"] in {"DeleteTrail", "PutInsightSelectors"}:
+            raise RuntimeError("Operator review required: " + detail["eventName"])
 
-def _ct_client():
-    # CloudTrail is regional; use the trail's home region.
-    # If HOME_REGION isn't set, boto3 will fall back to the Lambda's AWS_REGION.
-    return boto3.client("cloudtrail", region_name=HOME_REGION)
-def _load_json_list(v):
-    try:
-        data = json.loads(v)
-        return data if isinstance(data, list) else []
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return []
-
-
-def _build_baseline_event_selectors() -> List[Dict[str, Any]]:
-    selectors: List[Dict[str, Any]] = [{
-        "ReadWriteType": "All",
-        "IncludeManagementEvents": True,
-    }]
-
-    s3_arns = _load_json_list(S3_DATA_EVENT_BUCKET_ARNS_JSON)
-    lambda_arns = _load_json_list(LAMBDA_DATA_EVENT_FUNCTION_ARNS_JSON)
-
-    s3_values = [arn if arn.endswith("/") else arn + "/" for arn in s3_arns if isinstance(arn, str) and arn]
-    lambda_values = [arn for arn in lambda_arns if isinstance(arn, str) and arn]
-
-    if not s3_values and not lambda_values:
-        return selectors
-
-    rw = DATA_EVENTS_READ_WRITE_TYPE if DATA_EVENTS_READ_WRITE_TYPE in {"All", "ReadOnly", "WriteOnly"} else "All"
-
-    data_resources: List[Dict[str, Any]] = []
-    if s3_values:
-        data_resources.append({"Type": "AWS::S3::Object", "Values": s3_values})
-    if lambda_values:
-        data_resources.append({"Type": "AWS::Lambda::Function", "Values": lambda_values})
-
-    selectors.append({
-        "ReadWriteType": str(rw),
-        "IncludeManagementEvents": False,
-        "DataResources": data_resources,
-    })
-    return selectors
-
-
-def handler(event, _context):
-
-    """EventBridge -> Lambda entry point.
-
-    Conservative remediation:
-    - StopLogging -> StartLogging
-    - UpdateTrail/PutEventSelectors/PutInsightSelectors -> re-apply baseline flags + event selectors
-    - DeleteTrail -> only log (safe recreate is non-trivial)
-    """
-    LOG.info("received_event=%s", json.dumps(event))
-
-    if not TRAIL_NAME:
-        return {"ok": False, "error": "TRAIL_NAME env var is empty"}
-
-    detail = event.get("detail", {}) or {}
-    event_source = detail.get("eventSource")
-    event_name = detail.get("eventName")
-
-    if event_source != "cloudtrail.amazonaws.com":
-        return {"ok": True, "ignored": True, "reason": "not cloudtrail"}
-
-    ct = _ct_client()
-    actions = []
-
-    try:
-        if event_name == "StopLogging":
-            ct.start_logging(Name=TRAIL_NAME)
-            actions.append("start_logging")
-
-        if event_name in {"UpdateTrail", "PutEventSelectors", "PutInsightSelectors"}:
-            update_kwargs = {
-                "Name": TRAIL_NAME,
-                "IncludeGlobalServiceEvents": True,
-                "IsMultiRegionTrail": IS_MULTI_REGION,
-                "EnableLogFileValidation": True,
-            }
-            if LOG_BUCKET_NAME:
-                update_kwargs["S3BucketName"] = LOG_BUCKET_NAME
-            if KMS_KEY_ID:
-                update_kwargs["KmsKeyId"] = KMS_KEY_ID
-
-            ct.update_trail(**update_kwargs)
-            actions.append("update_trail")
+    trail = client.get_trail(Name=arn)["Trail"]
+    status = client.get_trail_status(Name=arn)
+    selected = client.get_event_selectors(TrailName=arn)
+    expected = json.loads(cfg["EXPECTED_FLAGS"])
+    selectors = json.loads(cfg["EXPECTED_SELECTORS"])
+    response_keys = {"EnableLogFileValidation": "LogFileValidationEnabled"}
+    changes = {k: v for k, v in expected.items() if trail.get(response_keys.get(k, k)) != v}
+    # Changing organization membership or replacing an advanced selector needs an operator.
+    if (selected.get("AdvancedEventSelectors") or trail.get("S3KeyPrefix")
+            or bool(trail.get("IsOrganizationTrail")) != (cfg["ORG_TRAIL"] == "true")
+            or (not expected.get("KmsKeyId") and trail.get("KmsKeyId"))):
+        raise RuntimeError("Unmanaged trail configuration requires review")
+    selector_drift = normalized(selectors) != normalized(selected.get("EventSelectors", []))
+    if changes or selector_drift or not status["IsLogging"]:
+        if cfg["REPAIR"] != "true":
+            raise RuntimeError("Trail drift detected in monitor-only mode")
+        if changes:
+            client.update_trail(Name=arn, **changes)
+        if selector_drift:
+            client.put_event_selectors(TrailName=arn, EventSelectors=selectors)
+        if not status["IsLogging"]:
+            client.start_logging(Name=arn)
+        LOG.info("trail_repair_requested")
+    if status.get("LatestDeliveryError") or status.get("LatestDigestDeliveryError"):
+        raise RuntimeError("CloudTrail reports a delivery error")
+    if scheduled:
+        LOG.info("scheduled_check_completed")
+    return "checked"
 
 
-            selectors = _build_baseline_event_selectors()
-
-            ct.put_event_selectors(
-                TrailName=TRAIL_NAME,
-                EventSelectors=selectors,
-            )
-
-
-
-            actions.append("put_event_selectors")
-            LOG.info("applying_event_selectors=%s", json.dumps(selectors))
-
-
-            ct.start_logging(Name=TRAIL_NAME)
-            actions.append("start_logging_after_update")
-
-        if event_name == "DeleteTrail":
-            actions.append("trail_deleted_no_auto_fix")
-
-    except Exception as exc:
-        LOG.exception("remediation_failed")
-        return {"ok": False, "eventName": event_name, "actions": actions, "error": str(exc)}
-
-    return {"ok": True, "eventName": event_name, "actions": actions}
+def handler(event, context):
+    import boto3
+    return reconcile(boto3.client("cloudtrail", region_name=os.environ["HOME_REGION"]), event, os.environ)

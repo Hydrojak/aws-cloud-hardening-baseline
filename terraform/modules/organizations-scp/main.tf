@@ -21,25 +21,37 @@ locals {
     "organizations:LeaveOrganization"
   ]
 
-  deny_statement = merge(
+  exception = length(var.exempt_principal_arns) == 0 ? {} : {
+    Condition = { ArnNotEquals = { "aws:PrincipalArn" = var.exempt_principal_arns } }
+  }
+  protected_controls = [
     {
-      Sid      = "DenyHighRiskSecurityDisables"
-      Effect   = "Deny"
-      Action   = local.deny_actions
-      Resource = "*"
+      Sid      = "ProtectBaselineRules"
+      Action   = ["events:DisableRule", "events:DeleteRule", "events:RemoveTargets", "events:PutRule", "events:PutTargets"]
+      Resource = ["arn:aws:events:*:*:rule/baseline-forward-*", "arn:aws:events:*:*:rule/baseline-security/baseline-receive-*"]
     },
-      length(var.exempt_principal_arns) > 0 ? {
-      Condition = {
-        ArnNotLike = {
-          "aws:PrincipalArn" = var.exempt_principal_arns
-        }
-      }
-    } : {}
-  )
-
+    {
+      Sid      = "ProtectEvidenceLog"
+      Action   = ["logs:DeleteLogGroup", "logs:DeleteLogStream", "logs:PutRetentionPolicy", "logs:DeleteRetentionPolicy"]
+      Resource = ["arn:aws:logs:*:*:log-group:/aws/events/baseline-security", "arn:aws:logs:*:*:log-group:/aws/events/baseline-security:*"]
+    },
+    {
+      Sid      = "ProtectForwardingRoles"
+      Action   = ["iam:UpdateAssumeRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:DeleteRole", "iam:AttachRolePolicy"]
+      Resource = ["arn:aws:iam::*:role/baseline-event-forward-*"]
+    }
+  ]
   scp_content = {
-    Version   = "2012-10-17"
-    Statement = [local.deny_statement]
+    Version = "2012-10-17"
+    Statement = concat(
+      [merge({ Sid = "DenyHighRiskSecurityDisables", Effect = "Deny", Action = local.deny_actions, Resource = "*" }, local.exception)],
+      [for entry in local.protected_controls : merge(entry, { Effect = "Deny" }, local.exception)],
+      var.archive_bucket_arn == null ? [] : [merge({
+        Sid      = "ProtectArchiveVersions", Effect = "Deny",
+        Action   = ["s3:DeleteObjectVersion", "s3:BypassGovernanceRetention", "s3:PutObjectRetention"],
+        Resource = "${var.archive_bucket_arn == null ? "" : var.archive_bucket_arn}/*"
+      }, local.exception)]
+    )
   }
 }
 

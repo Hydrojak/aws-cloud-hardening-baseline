@@ -1,0 +1,4 @@
+account_id      = "444444444444"
+central_bus_arn = "arn:aws:events:eu-west-1:333333333333:event-bus/baseline-security"
+regions         = ["eu-west-1", "us-east-1"]
+alert_email     = "ops@example.org"

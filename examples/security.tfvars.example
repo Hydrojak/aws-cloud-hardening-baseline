@@ -1,0 +1,4 @@
+account_id      = "333333333333"
+organization_id = "o-example12345"
+source_accounts = ["111111111111", "222222222222", "333333333333", "444444444444"]
+alert_email     = "ops@example.org"

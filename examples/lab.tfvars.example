@@ -1,0 +1,8 @@
+cloudtrail_log_bucket_name = "replace-with-unique-lab-cloudtrail"
+guardrails_target_type = "role"
+guardrails_target_name = "ExampleRestrictedWorkload"
+enable_guardrails_attachment = false
+sns_email = "ops@example.org"
+enable_trail_monitor = true
+enable_cloudtrail_auto_remediation = false
+additional_detection_regions = ["us-east-1"]

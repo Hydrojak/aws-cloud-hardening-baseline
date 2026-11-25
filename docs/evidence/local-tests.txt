@@ -1,0 +1,61 @@
+test_missing_recipient_fails (test_delivery.ProbeEvidence.test_missing_recipient_fails) ... ok
+test_missing_region_fails (test_delivery.ProbeEvidence.test_missing_region_fails) ... ok
+test_two_regions_required_for_success (test_delivery.ProbeEvidence.test_two_regions_required_for_success) ... ok
+test_aws_selector_defaults_do_not_trigger_write (test_reconcile.TrailHealth.test_aws_selector_defaults_do_not_trigger_write) ... ok
+test_deleted_trail_or_insights_escalates (test_reconcile.TrailHealth.test_deleted_trail_or_insights_escalates) ... ok
+test_delivery_failure_surfaces (test_reconcile.TrailHealth.test_delivery_failure_surfaces) ... ok
+test_failed_api_call_propagates (test_reconcile.TrailHealth.test_failed_api_call_propagates) ... ok
+test_healthy_no_writes (test_reconcile.TrailHealth.test_healthy_no_writes) ... ok
+test_monitor_only_no_writes (test_reconcile.TrailHealth.test_monitor_only_no_writes) ... ok
+test_only_drift_then_redelivery (test_reconcile.TrailHealth.test_only_drift_then_redelivery) ... ok
+test_organization_drift_needs_operator (test_reconcile.TrailHealth.test_organization_drift_needs_operator) ... ok
+test_other_trail_account_region_or_denied_request (test_reconcile.TrailHealth.test_other_trail_account_region_or_denied_request) ... ok
+test_protect_advanced_selectors (test_reconcile.TrailHealth.test_protect_advanced_selectors) ... ok
+test_restart_once (test_reconcile.TrailHealth.test_restart_once) ... ok
+test_scheduled_success_emits_heartbeat (test_reconcile.TrailHealth.test_scheduled_success_emits_heartbeat) ... ok
+test_self_event (test_reconcile.TrailHealth.test_self_event) ... ok
+test_wrong_basic_selectors_replaced (test_reconcile.TrailHealth.test_wrong_basic_selectors_replaced) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.006s
+
+OK
+PASS TR-1
+PASS TR-2
+PASS IAM-1
+PASS IAM-2
+PASS S3-1
+PASS S3-2
+PASS ROOT-1
+PASS ROOT-2
+PASS DEF-1
+PASS DEF-2
+PASS GD-6.9
+PASS GD-7
+PASS GD-8.9
+PASS CSPM-HIGH-ACTIVE
+PASS CSPM-HIGH-ARCHIVED
+PASS CSPM-LOW-ACTIVE
+PASS V2-3
+PASS V2-4
+PASS V2-5
+PASS PROBE-baseline.health
+PASS PROBE-example.other
+21 AWS Event Ruler fixtures passed
+tests/boundary.tftest.hcl... in progress
+  run "only_forwarding_from_named_member_role_in_org"... pass
+  run "reject_wildcard_sender"... pass
+  run "reject_wildcard_organization"... pass
+tests/boundary.tftest.hcl... tearing down
+tests/boundary.tftest.hcl... pass
+
+Success! 3 passed, 0 failed.
+tests/archive.tftest.hcl... in progress
+  run "trail_bound_organization_delivery"... pass
+  run "tls_on_bucket_and_objects"... pass
+  run "standalone_has_only_account_prefix"... pass
+  run "organization_id_required"... pass
+tests/archive.tftest.hcl... tearing down
+tests/archive.tftest.hcl... pass
+
+Success! 4 passed, 0 failed.

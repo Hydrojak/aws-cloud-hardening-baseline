@@ -1,0 +1,43 @@
+{
+  "source": [
+    "aws.events",
+    "aws.logs",
+    "aws.cloudwatch",
+    "aws.guardduty",
+    "aws.securityhub",
+    "aws.kms",
+    "aws.sns",
+    "aws.config",
+    "aws.organizations",
+    "aws.sso",
+    "aws.lambda"
+  ],
+  "detail-type": [
+    "AWS API Call via CloudTrail"
+  ],
+  "detail": {
+    "eventName": [
+      "DisableRule",
+      "DeleteRule",
+      "RemoveTargets",
+      "DeleteLogGroup",
+      "DeleteMetricFilter",
+      "DeleteAlarms",
+      "DisableAlarmActions",
+      "DeleteDetector",
+      "UpdateDetector",
+      "DisableSecurityHub",
+      "StopConfigurationRecorder",
+      "DeleteConfigurationRecorder",
+      "DisableKey",
+      "ScheduleKeyDeletion",
+      "DeleteTopic",
+      "Unsubscribe",
+      "DetachPolicy",
+      "UpdatePolicy",
+      "DeleteAccountAssignment",
+      "UpdateFunctionCode",
+      "UpdateFunctionConfiguration"
+    ]
+  }
+}

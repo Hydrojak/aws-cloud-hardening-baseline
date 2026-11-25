@@ -1,0 +1,16 @@
+{
+  "source": [
+    "aws.securityhub"
+  ],
+  "detail-type": [
+    "Findings Imported V2"
+  ],
+  "detail": {
+    "findings": {
+      "severity_id": [
+        4,
+        5
+      ]
+    }
+  }
+}

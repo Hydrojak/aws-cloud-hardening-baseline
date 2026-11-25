@@ -91,7 +91,7 @@ resource "aws_cloudwatch_event_rule" "s3_exposure_changes" {
         "PutBucketAcl",
         "PutBucketPolicy",
         "DeleteBucketPolicy",
-        "PutBucketPublicAccessBlock"
+        "PutBucketPublicAccessBlock", "DeleteBucketPublicAccessBlock", "PutAccountPublicAccessBlock", "DeleteAccountPublicAccessBlock", "PutPublicAccessBlock", "DeletePublicAccessBlock"
       ]
     }
   })
@@ -105,14 +105,14 @@ resource "aws_cloudwatch_event_target" "s3_exposure_changes_to_logs" {
 
 # Optional: invoke an auto-remediation Lambda when CloudTrail tampering is detected
 resource "aws_cloudwatch_event_target" "cloudtrail_tampering_to_lambda" {
-  count     = var.cloudtrail_remediation_lambda_arn == null ? 0 : 1
+  count     = var.enable_remediation ? 1 : 0
   rule      = aws_cloudwatch_event_rule.cloudtrail_tampering.name
   target_id = "remediation"
   arn       = var.cloudtrail_remediation_lambda_arn
 }
 
 resource "aws_lambda_permission" "allow_eventbridge_invoke_cloudtrail_remediation" {
-  count         = var.cloudtrail_remediation_lambda_arn == null ? 0 : 1
+  count         = var.enable_remediation ? 1 : 0
   statement_id  = "AllowExecutionFromEventBridgeCloudTrailTampering"
   action        = "lambda:InvokeFunction"
   function_name = var.cloudtrail_remediation_lambda_arn

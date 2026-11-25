@@ -1,0 +1,11 @@
+account_id         = "111111111111"
+  kms_key_arn = "arn:aws:kms:eu-west-1:222222222222:key/00000000-1111-2222-3333-444444444444"
+archive_account_id = "222222222222"
+organization_id    = "o-example12345"
+bucket_name        = "replace-with-unique-org-archive"
+pilot_ou           = "ou-abcd-example123"
+alert_email        = "ops@example.org"
+repair             = false
+apply_s3_policy    = false
+apply_scp          = false
+monthly_budget_usd = 50

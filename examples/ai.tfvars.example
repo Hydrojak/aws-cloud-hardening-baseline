@@ -1,0 +1,2 @@
+# Overlay for supported regions with a GuardDuty detector and AI workloads.
+guardduty_features = ["AI_PROTECTION"]
