@@ -6,6 +6,24 @@ mock_provider "aws" {
     defaults = { account_id = "111111111111" }
   }
 }
+# The AWS mock generates arbitrary strings for computed attributes.
+# Supply JSON so the provider's IAM policy validator can evaluate the plan.
+override_data {
+  target = module.s3_guardrails.data.aws_iam_policy_document.s3_guardrails
+  values = {
+    json = <<-JSON
+      {
+        "Version": "2012-10-17",
+        "Statement": [{
+          "Effect": "Deny",
+          "Action": "s3:PutAccountPublicAccessBlock",
+          "Resource": "*"
+        }]
+      }
+    JSON
+  }
+}
+
 mock_provider "archive" {}
 variables {
   cloudtrail_log_bucket_name   = "example-v3-lab"
