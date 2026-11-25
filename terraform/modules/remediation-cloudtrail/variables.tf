@@ -37,16 +37,32 @@ variable "function_name" {
   default     = "baseline-cloudtrail-auto-remediation"
 }
 variable "s3_data_event_bucket_arns" {
-  type        = list(string)
-  default     = []
+  type    = list(string)
+  default = []
 }
 
 variable "lambda_data_event_function_arns" {
-  type        = list(string)
-  default     = []
+  type    = list(string)
+  default = []
 }
 
 variable "data_events_read_write_type" {
-  type        = string
-  default     = "All"
+  type    = string
+  default = "All"
+}
+variable "repair" {
+  type    = bool
+  default = false
+}
+variable "org_trail" {
+  type    = bool
+  default = false
+}
+variable "sns_topic_arn" {
+  type    = string
+  default = null
+}
+variable "concurrency_limit" {
+  type    = number
+  default = 2
 }

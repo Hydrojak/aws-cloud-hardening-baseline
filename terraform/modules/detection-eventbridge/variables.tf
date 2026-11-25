@@ -13,3 +13,8 @@ variable "cloudtrail_remediation_lambda_arn" {
   type        = string
   default     = null
 }
+
+variable "enable_remediation" {
+  type    = bool
+  default = false
+}

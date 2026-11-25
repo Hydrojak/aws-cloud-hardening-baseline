@@ -1,0 +1,2 @@
+# Overlay on member.tfvars; imports and regional coverage must be checked beforehand.
+guardduty_features = ["RUNTIME_MONITORING"]

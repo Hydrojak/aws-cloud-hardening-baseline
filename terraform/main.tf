@@ -4,6 +4,9 @@ module "iam_baseline" {
 
 module "cloudtrail_logging" {
   source                = "./modules/cloudtrail-logging"
+  providers             = { aws = aws, aws.archive = aws }
+  organization_id       = var.organization_id
+  object_lock_days      = var.object_lock_days
   log_bucket_name       = var.cloudtrail_log_bucket_name
   trail_name            = var.cloudtrail_trail_name
   is_multi_region_trail = var.cloudtrail_is_multi_region
@@ -17,11 +20,11 @@ module "cloudtrail_logging" {
   allow_organization_log_writes = var.cloudtrail_allow_organization_log_writes
   is_organization_trail         = var.cloudtrail_is_organization_trail
 
-  enable_s3_data_events            = var.cloudtrail_enable_s3_data_events
-  s3_data_event_bucket_arns        = var.cloudtrail_s3_data_event_bucket_arns
-  enable_lambda_data_events        = var.cloudtrail_enable_lambda_data_events
-  lambda_data_event_function_arns  = var.cloudtrail_lambda_data_event_function_arns
-  data_events_read_write_type      = var.cloudtrail_data_events_read_write_type
+  enable_s3_data_events           = var.cloudtrail_enable_s3_data_events
+  s3_data_event_bucket_arns       = var.cloudtrail_s3_data_event_bucket_arns
+  enable_lambda_data_events       = var.cloudtrail_enable_lambda_data_events
+  lambda_data_event_function_arns = var.cloudtrail_lambda_data_event_function_arns
+  data_events_read_write_type     = var.cloudtrail_data_events_read_write_type
 
 }
 
@@ -52,9 +55,9 @@ module "alerting_cloudwatch" {
 
 # V2.2 - Alerting (Alarms)
 module "alerting_sns" {
-  count     = var.create_sns_topic ? 1 : 0
-  source    = "./modules/alerting-sns"
-  topic_name = var.sns_topic_name
+  count       = var.create_sns_topic ? 1 : 0
+  source      = "./modules/alerting-sns"
+  topic_name  = var.sns_topic_name
   kms_key_arn = var.sns_kms_key_arn
 
   email_subscriptions = var.sns_email == null ? [] : [var.sns_email]
@@ -74,9 +77,13 @@ module "alerting_alarms" {
 
 # Roadmap: Optional automated remediation (Lambda)
 module "remediation_cloudtrail" {
-  count  = var.enable_cloudtrail_auto_remediation ? 1 : 0
+  count  = var.enable_trail_monitor || var.enable_cloudtrail_auto_remediation ? 1 : 0
   source = "./modules/remediation-cloudtrail"
 
+  repair                = var.enable_cloudtrail_auto_remediation
+  org_trail             = var.cloudtrail_is_organization_trail
+  sns_topic_arn         = local.effective_sns_topic_arn
+  depends_on            = [module.cloudtrail_logging]
   trail_name            = var.cloudtrail_trail_name
   home_region           = var.aws_region
   is_multi_region_trail = var.cloudtrail_is_multi_region
@@ -84,9 +91,9 @@ module "remediation_cloudtrail" {
   log_bucket_name = var.cloudtrail_log_bucket_name
   kms_key_arn     = var.cloudtrail_kms_key_arn
 
-  log_retention_days = var.remediation_log_retention_days
-  s3_data_event_bucket_arns       = var.cloudtrail_s3_data_event_bucket_arns
-  lambda_data_event_function_arns = var.cloudtrail_lambda_data_event_function_arns
+  log_retention_days              = var.remediation_log_retention_days
+  s3_data_event_bucket_arns       = var.cloudtrail_enable_s3_data_events ? var.cloudtrail_s3_data_event_bucket_arns : []
+  lambda_data_event_function_arns = var.cloudtrail_enable_lambda_data_events ? var.cloudtrail_lambda_data_event_function_arns : []
   data_events_read_write_type     = var.cloudtrail_data_events_read_write_type
 
 }
@@ -105,14 +112,16 @@ module "detection_eventbridge" {
   source        = "./modules/detection-eventbridge"
   log_group_arn = module.alerting_cloudwatch.log_group_arn
 
-  cloudtrail_remediation_lambda_arn = var.enable_cloudtrail_auto_remediation ? module.remediation_cloudtrail[0].lambda_arn : null
+  enable_remediation                = var.enable_cloudtrail_auto_remediation || var.cloudtrail_remediation_lambda_arn != null
+  cloudtrail_remediation_lambda_arn = var.enable_cloudtrail_auto_remediation ? module.remediation_cloudtrail[0].lambda_arn : var.cloudtrail_remediation_lambda_arn
 }
 module "guardduty_integration" {
   count  = var.enable_guardduty_integration ? 1 : 0
   source = "./modules/guardduty-integration"
 
-  prefix       = var.prefix
-  severity_min = var.guardduty_severity_min
+  manage_detector = var.manage_guardduty_detector
+  prefix          = var.prefix
+  severity_min    = var.guardduty_severity_min
 
   log_group_arn  = module.alerting_cloudwatch.log_group_arn
   log_group_name = module.alerting_cloudwatch.log_group_name
@@ -124,10 +133,11 @@ module "securityhub_integration" {
   count  = var.enable_securityhub_integration ? 1 : 0
   source = "./modules/securityhub-integration"
 
-  prefix          = var.prefix
-  severity_labels = var.securityhub_severity_labels
-  record_states   = var.securityhub_record_states
-  workflow_states = var.securityhub_workflow_states
+  manage_securityhub = var.manage_securityhub_account
+  prefix             = var.prefix
+  severity_labels    = var.securityhub_severity_labels
+  record_states      = var.securityhub_record_states
+  workflow_states    = var.securityhub_workflow_states
 
   log_group_arn  = module.alerting_cloudwatch.log_group_arn
   log_group_name = module.alerting_cloudwatch.log_group_name

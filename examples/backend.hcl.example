@@ -1,0 +1,7 @@
+bucket                = "replace-with-unique-v3-state-444444444444"
+key                   = "v3/member/444444444444.tfstate"
+region                = "eu-west-1"
+encrypt               = true
+use_lockfile          = true
+allowed_account_ids   = ["444444444444"]
+kms_key_id = "arn:aws:kms:eu-west-1:444444444444:key/00000000-1111-2222-3333-444444444444"

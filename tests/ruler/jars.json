@@ -1,0 +1,26 @@
+[
+  {
+    "url": "https://repo.maven.apache.org/maven2/software/amazon/event/ruler/event-ruler/1.8.2/event-ruler-1.8.2.jar",
+    "sha256": "35cf474fd22f4ca583d087db9b3b37102c9e70192c8e06c8c99519aaa65f0c60"
+  },
+  {
+    "url": "https://repo.maven.apache.org/maven2/ch/randelshofer/fastdoubleparser/2.0.1/fastdoubleparser-2.0.1.jar",
+    "sha256": "4242e2335299026524d331355a6cd75abdc38c8fed4402f25b5c7ce9d7668cc1"
+  },
+  {
+    "url": "https://repo.maven.apache.org/maven2/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar",
+    "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7"
+  },
+  {
+    "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.19.1/jackson-core-2.19.1.jar",
+    "sha256": "c46369e1a21810100adbc92503b62f15a9ef1640427932f4fe1588ef7ce7e480"
+  },
+  {
+    "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.19.1/jackson-databind-2.19.1.jar",
+    "sha256": "0bc539401d52c6b14e668947c851dcc49f78a4ada3d1fc8e8f71440613fc26ce"
+  },
+  {
+    "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.19.1/jackson-annotations-2.19.1.jar",
+    "sha256": "5a3cd7211ab26b36213f43a2a94bc052a3385af780c5c135329741b2d79a9730"
+  }
+]

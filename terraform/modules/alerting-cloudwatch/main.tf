@@ -15,7 +15,7 @@ resource "aws_cloudwatch_log_resource_policy" "allow_eventbridge_putlogs" {
       {
         Sid       = "AllowEventBridgeToWrite",
         Effect    = "Allow",
-        Principal = { Service = "events.amazonaws.com" },
+        Principal = { Service = ["events.amazonaws.com", "delivery.logs.amazonaws.com"] },
         Action = [
           "logs:CreateLogStream",
           "logs:PutLogEvents"

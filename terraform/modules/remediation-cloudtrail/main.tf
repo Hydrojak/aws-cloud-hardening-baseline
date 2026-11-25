@@ -5,18 +5,18 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "= 6.74.0"
     }
     archive = {
       source  = "hashicorp/archive"
-      version = "~> 2.0"
+      version = "= 2.8.1"
     }
   }
 }
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/lambda"
+  source_file = "${path.module}/lambda/index.py"
   output_path = "${path.module}/lambda.zip"
 }
 
@@ -27,17 +27,12 @@ resource "aws_iam_role" "lambda" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
+        Effect    = "Allow"
         Principal = { Service = "lambda.amazonaws.com" }
-        Action = "sts:AssumeRole"
+        Action    = "sts:AssumeRole"
       }
     ]
   })
-}
-
-resource "aws_iam_role_policy_attachment" "basic_exec" {
-  role       = aws_iam_role.lambda.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_iam_role_policy" "cloudtrail_remediate" {
@@ -48,16 +43,15 @@ resource "aws_iam_role_policy" "cloudtrail_remediate" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "CloudTrailRemediation"
-        Effect = "Allow"
-        Action = [
-          "cloudtrail:StartLogging",
-          "cloudtrail:UpdateTrail",
-          "cloudtrail:PutEventSelectors",
-          "cloudtrail:GetTrail",
-          "cloudtrail:GetTrailStatus"
-        ]
-        Resource = "*"
+        Sid      = "CloudTrailRemediation"
+        Effect   = "Allow"
+        Action   = concat(["cloudtrail:GetTrail", "cloudtrail:GetEventSelectors", "cloudtrail:GetTrailStatus"], var.repair ? ["cloudtrail:StartLogging", "cloudtrail:UpdateTrail", "cloudtrail:PutEventSelectors"] : [])
+        Resource = local.trail_arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "${aws_cloudwatch_log_group.lambda.arn}:*"
       }
     ]
   })
@@ -71,27 +65,27 @@ resource "aws_cloudwatch_log_group" "lambda" {
 resource "aws_lambda_function" "this" {
   function_name = var.function_name
   role          = aws_iam_role.lambda.arn
-  runtime       = "python3.11"
+  runtime       = "python3.13"
   handler       = "index.handler"
 
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
-  timeout     = 30
-  memory_size = 128
+  timeout                        = 30
+  memory_size                    = 128
+  reserved_concurrent_executions = var.concurrency_limit
 
   environment {
     variables = {
-      TRAIL_NAME            = var.trail_name
-      HOME_REGION           = var.home_region
-      IS_MULTI_REGION_TRAIL = tostring(var.is_multi_region_trail)
-      LOG_BUCKET_NAME       = var.log_bucket_name
-      KMS_KEY_ID            = var.kms_key_arn == null ? "" : var.kms_key_arn
-      S3_DATA_EVENT_BUCKET_ARNS_JSON       = jsonencode(var.s3_data_event_bucket_arns)
-      LAMBDA_DATA_EVENT_FUNCTION_ARNS_JSON = jsonencode(var.lambda_data_event_function_arns)
-      DATA_EVENTS_READ_WRITE_TYPE          = var.data_events_read_write_type
+      TRAIL_ARN          = local.trail_arn
+      EXPECTED_SELECTORS = jsonencode(local.selectors)
+      EXPECTED_FLAGS     = jsonencode(merge({ S3BucketName = var.log_bucket_name, IncludeGlobalServiceEvents = true, IsMultiRegionTrail = var.is_multi_region_trail, EnableLogFileValidation = true }, var.kms_key_arn == null ? {} : { KmsKeyId = var.kms_key_arn }))
+      HOME_REGION        = var.home_region
+      ROLE_ARN           = aws_iam_role.lambda.arn
+      REPAIR             = tostring(var.repair)
+      ORG_TRAIL          = tostring(var.org_trail)
     }
   }
 
-  depends_on = [aws_cloudwatch_log_group.lambda]
+  depends_on = [aws_cloudwatch_log_group.lambda, aws_iam_role_policy.cloudtrail_remediate]
 }

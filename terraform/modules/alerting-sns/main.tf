@@ -1,3 +1,7 @@
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
+data "aws_region" "current" {}
+
 resource "aws_sns_topic" "alerts" {
   name              = var.topic_name
   kms_master_key_id = var.kms_key_arn
@@ -16,6 +20,10 @@ resource "aws_sns_topic_policy" "allow_cloudwatch" {
         Principal = { Service = "cloudwatch.amazonaws.com" }
         Action    = "SNS:Publish"
         Resource  = aws_sns_topic.alerts.arn
+        Condition = {
+          StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id }
+          ArnLike      = { "aws:SourceArn" = "arn:${data.aws_partition.current.partition}:cloudwatch:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:alarm:*" }
+        }
       }
     ]
   })

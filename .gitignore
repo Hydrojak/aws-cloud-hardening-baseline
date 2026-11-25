@@ -2,7 +2,14 @@
 .terraform/
 *.tfstate
 *.tfstate.*
-.terraform.lock.hcl
+*.tfvars
+*.tfplan
+*.tfbackend
+*.pyc
+__pycache__/
+lambda.zip
+*.auto.tfvars.json
+crash*.log
 
 # Audit results
 audit/results/

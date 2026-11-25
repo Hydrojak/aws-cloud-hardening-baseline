@@ -1,0 +1,425 @@
+[
+  {
+    "id": "TR-1",
+    "rule": "trail-change",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.cloudtrail",
+      "detail": {
+        "eventSource": "cloudtrail.amazonaws.com",
+        "eventName": "StopLogging"
+      },
+      "detail-type": "AWS API Call via CloudTrail"
+    }
+  },
+  {
+    "id": "TR-2",
+    "rule": "trail-change",
+    "matches": false,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.cloudtrail",
+      "detail": {
+        "eventSource": "cloudtrail.amazonaws.com",
+        "eventName": "GetTrailStatus"
+      },
+      "detail-type": "AWS API Call via CloudTrail"
+    }
+  },
+  {
+    "id": "IAM-1",
+    "rule": "identity-change",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.iam",
+      "detail": {
+        "eventSource": "iam.amazonaws.com",
+        "eventName": "UpdateAssumeRolePolicy"
+      },
+      "detail-type": "AWS API Call via CloudTrail"
+    }
+  },
+  {
+    "id": "IAM-2",
+    "rule": "identity-change",
+    "matches": false,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.iam",
+      "detail": {
+        "eventSource": "iam.amazonaws.com",
+        "eventName": "ListRoles"
+      },
+      "detail-type": "AWS API Call via CloudTrail"
+    }
+  },
+  {
+    "id": "S3-1",
+    "rule": "s3-access",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.s3",
+      "detail": {
+        "eventSource": "s3.amazonaws.com",
+        "eventName": "DeleteAccountPublicAccessBlock"
+      },
+      "detail-type": "AWS API Call via CloudTrail"
+    }
+  },
+  {
+    "id": "S3-2",
+    "rule": "s3-access",
+    "matches": false,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.s3",
+      "detail": {
+        "eventSource": "s3.amazonaws.com",
+        "eventName": "GetBucketPolicy"
+      },
+      "detail-type": "AWS API Call via CloudTrail"
+    }
+  },
+  {
+    "id": "ROOT-1",
+    "rule": "root-use",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.signin",
+      "detail": {
+        "userIdentity": {
+          "type": "Root"
+        }
+      },
+      "detail-type": "AWS Console Sign In via CloudTrail"
+    }
+  },
+  {
+    "id": "ROOT-2",
+    "rule": "root-use",
+    "matches": false,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.signin",
+      "detail": {
+        "userIdentity": {
+          "type": "AssumedRole"
+        }
+      },
+      "detail-type": "AWS Console Sign In via CloudTrail"
+    }
+  },
+  {
+    "id": "DEF-1",
+    "rule": "defense-change",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.events",
+      "detail": {
+        "eventSource": "events.amazonaws.com",
+        "eventName": "DisableRule"
+      },
+      "detail-type": "AWS API Call via CloudTrail"
+    }
+  },
+  {
+    "id": "DEF-2",
+    "rule": "defense-change",
+    "matches": false,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.events",
+      "detail": {
+        "eventSource": "events.amazonaws.com",
+        "eventName": "DescribeRule"
+      },
+      "detail-type": "AWS API Call via CloudTrail"
+    }
+  },
+  {
+    "id": "GD-6.9",
+    "rule": "guardduty-high",
+    "matches": false,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.guardduty",
+      "detail": {
+        "severity": 6.9
+      },
+      "detail-type": "GuardDuty Finding"
+    }
+  },
+  {
+    "id": "GD-7",
+    "rule": "guardduty-high",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.guardduty",
+      "detail": {
+        "severity": 7
+      },
+      "detail-type": "GuardDuty Finding"
+    }
+  },
+  {
+    "id": "GD-8.9",
+    "rule": "guardduty-high",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.guardduty",
+      "detail": {
+        "severity": 8.9
+      },
+      "detail-type": "GuardDuty Finding"
+    }
+  },
+  {
+    "id": "CSPM-HIGH-ACTIVE",
+    "rule": "cspm-high",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.securityhub",
+      "detail": {
+        "findings": [
+          {
+            "Severity": {
+              "Label": "HIGH"
+            },
+            "RecordState": "ACTIVE"
+          }
+        ]
+      },
+      "detail-type": "Security Hub Findings - Imported"
+    }
+  },
+  {
+    "id": "CSPM-HIGH-ARCHIVED",
+    "rule": "cspm-high",
+    "matches": false,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.securityhub",
+      "detail": {
+        "findings": [
+          {
+            "Severity": {
+              "Label": "HIGH"
+            },
+            "RecordState": "ARCHIVED"
+          }
+        ]
+      },
+      "detail-type": "Security Hub Findings - Imported"
+    }
+  },
+  {
+    "id": "CSPM-LOW-ACTIVE",
+    "rule": "cspm-high",
+    "matches": false,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.securityhub",
+      "detail": {
+        "findings": [
+          {
+            "Severity": {
+              "Label": "LOW"
+            },
+            "RecordState": "ACTIVE"
+          }
+        ]
+      },
+      "detail-type": "Security Hub Findings - Imported"
+    }
+  },
+  {
+    "id": "V2-3",
+    "rule": "hub-v2-high",
+    "matches": false,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.securityhub",
+      "detail": {
+        "findings": [
+          {
+            "severity_id": 3
+          }
+        ]
+      },
+      "detail-type": "Findings Imported V2"
+    }
+  },
+  {
+    "id": "V2-4",
+    "rule": "hub-v2-high",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.securityhub",
+      "detail": {
+        "findings": [
+          {
+            "severity_id": 4
+          }
+        ]
+      },
+      "detail-type": "Findings Imported V2"
+    }
+  },
+  {
+    "id": "V2-5",
+    "rule": "hub-v2-high",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "aws.securityhub",
+      "detail": {
+        "findings": [
+          {
+            "severity_id": 5
+          }
+        ]
+      },
+      "detail-type": "Findings Imported V2"
+    }
+  },
+  {
+    "id": "PROBE-baseline.health",
+    "rule": "pipeline-probe",
+    "matches": true,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "baseline.health",
+      "detail": {
+        "nonce": "example"
+      },
+      "detail-type": "Baseline delivery probe"
+    }
+  },
+  {
+    "id": "PROBE-example.other",
+    "rule": "pipeline-probe",
+    "matches": false,
+    "event": {
+      "version": "0",
+      "id": "a1b2c3d4-1111-4222-8333-000000000001",
+      "account": "444444444444",
+      "region": "us-east-1",
+      "time": "2026-11-25T10:00:00Z",
+      "resources": [],
+      "source": "example.other",
+      "detail": {
+        "nonce": "example"
+      },
+      "detail-type": "Baseline delivery probe"
+    }
+  }
+]

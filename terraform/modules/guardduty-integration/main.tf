@@ -12,10 +12,10 @@ resource "aws_cloudwatch_event_rule" "guardduty_findings" {
   name = "${var.prefix}-guardduty-findings"
 
   event_pattern = jsonencode({
-    "detail-type": ["GuardDuty Finding"],
-    "source": ["aws.guardduty"],
-    "detail": {
-      "severity": [{ "numeric": [">=", var.severity_min] }]
+    "detail-type" : ["GuardDuty Finding"],
+    "source" : ["aws.guardduty"],
+    "detail" : {
+      "severity" : [{ "numeric" : [">=", var.severity_min] }]
     }
   })
 }
@@ -39,7 +39,7 @@ resource "aws_cloudwatch_log_metric_filter" "guardduty_high" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "guardduty_high" {
-  alarm_name        = "ALERT-GuardDuty-High-Severity"
+  alarm_name          = "ALERT-GuardDuty-High-Severity"
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = 1
   period              = var.period_seconds

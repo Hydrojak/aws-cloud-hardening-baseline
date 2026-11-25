@@ -1,3 +1,8 @@
+terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws", configuration_aliases = [aws.archive] }
+  }
+}
 # CloudTrail logging baseline (cost-conscious)
 # NOTE: Without AWS credentials, you can validate syntax but not plan/apply.
 
@@ -6,13 +11,9 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
 locals {
-  # Trail ARN used in S3 bucket policy conditions (to mitigate confused deputy issues)
-  strict_trail_arn   = "arn:${data.aws_partition.current.partition}:cloudtrail:${var.trail_home_region}:${data.aws_caller_identity.current.account_id}:trail/${var.trail_name}"
-  wildcard_trail_arn = "arn:${data.aws_partition.current.partition}:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/${var.trail_name}"
-
-  # For organization / centralized logging buckets, CloudTrail writes logs for multiple accounts under AWSLogs/<account-id>/...
+  use_kms                    = var.use_kms != null ? var.use_kms : var.kms_key_arn != null
+  owner_id                   = coalesce(var.trail_owner_id, data.aws_caller_identity.current.account_id)
   allow_multi_account_writes = var.allow_organization_log_writes || var.is_organization_trail
-  cloudtrail_logs_resource   = local.allow_multi_account_writes ? "${aws_s3_bucket.trail_logs.arn}/AWSLogs/*" : "${aws_s3_bucket.trail_logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
 }
 locals {
   s3_data_event_values = [for arn in var.s3_data_event_bucket_arns : (endswith(arn, "/") ? arn : "${arn}/")]
@@ -23,20 +24,34 @@ locals {
 }
 
 resource "aws_s3_bucket" "trail_logs" {
-  bucket        = var.log_bucket_name
-  force_destroy = var.force_destroy_bucket
+  provider            = aws.archive
+  bucket              = var.log_bucket_name
+  force_destroy       = var.force_destroy_bucket
+  object_lock_enabled = var.object_lock_days > 0 ? true : null
+  lifecycle {
+    precondition {
+      condition     = !local.allow_multi_account_writes || can(regex("^o-[a-z0-9]{10,32}$", var.organization_id))
+      error_message = "Organization delivery requires a real organization_id."
+    }
+    precondition {
+      condition     = !(var.force_destroy_bucket && var.object_lock_days > 0)
+      error_message = "An archive with retention cannot be force-destroyed."
+    }
+  }
 }
 
 # Recommended hardening: avoid ACL ownership edge cases
 resource "aws_s3_bucket_ownership_controls" "trail_logs" {
-  bucket = aws_s3_bucket.trail_logs.id
+  provider = aws.archive
+  bucket   = aws_s3_bucket.trail_logs.id
   rule {
     object_ownership = "BucketOwnerEnforced"
   }
 }
 
 resource "aws_s3_bucket_public_access_block" "trail_logs" {
-  bucket = aws_s3_bucket.trail_logs.id
+  provider = aws.archive
+  bucket   = aws_s3_bucket.trail_logs.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -45,7 +60,8 @@ resource "aws_s3_bucket_public_access_block" "trail_logs" {
 }
 
 resource "aws_s3_bucket_versioning" "trail_logs" {
-  bucket = aws_s3_bucket.trail_logs.id
+  provider = aws.archive
+  bucket   = aws_s3_bucket.trail_logs.id
   versioning_configuration {
     status = "Enabled"
   }
@@ -53,8 +69,9 @@ resource "aws_s3_bucket_versioning" "trail_logs" {
 
 # Encryption: SSE-S3 by default; optionally SSE-KMS if kms_key_arn is set
 resource "aws_s3_bucket_server_side_encryption_configuration" "trail_logs_sse_s3" {
-  count  = var.kms_key_arn == null ? 1 : 0
-  bucket = aws_s3_bucket.trail_logs.id
+  provider = aws.archive
+  count    = local.use_kms ? 0 : 1
+  bucket   = aws_s3_bucket.trail_logs.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -64,8 +81,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "trail_logs_sse_s3
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "trail_logs_sse_kms" {
-  count  = var.kms_key_arn != null ? 1 : 0
-  bucket = aws_s3_bucket.trail_logs.id
+  provider = aws.archive
+  count    = local.use_kms ? 1 : 0
+  bucket   = aws_s3_bucket.trail_logs.id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -77,13 +95,17 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "trail_logs_sse_km
 
 # Optional lifecycle to avoid infinite growth (set retention_days > 0)
 resource "aws_s3_bucket_lifecycle_configuration" "trail_logs" {
-  count  = var.retention_days > 0 ? 1 : 0
-  bucket = aws_s3_bucket.trail_logs.id
+  provider = aws.archive
+  count    = var.retention_days > 0 ? 1 : 0
+  bucket   = aws_s3_bucket.trail_logs.id
 
   rule {
     id     = "expire-old-logs"
     status = "Enabled"
     filter {}
+    noncurrent_version_expiration {
+      noncurrent_days = var.retention_days
+    }
     expiration {
       days = var.retention_days
     }
@@ -92,62 +114,18 @@ resource "aws_s3_bucket_lifecycle_configuration" "trail_logs" {
 
 # Deny non-TLS access to the log bucket + allow CloudTrail delivery
 resource "aws_s3_bucket_policy" "trail_logs" {
-  bucket = aws_s3_bucket.trail_logs.id
+  provider = aws.archive
+  bucket   = aws_s3_bucket.trail_logs.id
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "DenyInsecureTransport"
-        Effect    = "Deny"
-        Principal = "*"
-        Action    = "s3:*"
-        Resource = [
-          aws_s3_bucket.trail_logs.arn,
-          "${aws_s3_bucket.trail_logs.arn}/*"
-        ]
-        Condition = {
-          Bool = { "aws:SecureTransport" = "false" }
-        }
-      },
-      {
-        Sid       = "AWSCloudTrailWrite"
-        Effect    = "Allow"
-        Principal = { Service = "cloudtrail.amazonaws.com" }
-        Action    = "s3:PutObject"
-        Resource  = local.cloudtrail_logs_resource
-        Condition = {
-          StringEquals = {
-            "s3:x-amz-acl"      = "bucket-owner-full-control"
-            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
-          }
-          # If strict_trail_source_arn is enabled, restrict to the exact trail ARN in trail_home_region.
-          # Otherwise, allow any region in the ARN (less strict, but more flexible).
-          (var.strict_trail_source_arn ? "ArnEquals" : "ArnLike") = {
-            "aws:SourceArn" = var.strict_trail_source_arn ? local.strict_trail_arn : local.wildcard_trail_arn
-          }
-        }
-      },
-      {
-        Sid       = "AWSCloudTrailAclCheck"
-        Effect    = "Allow"
-        Principal = { Service = "cloudtrail.amazonaws.com" }
-        Action    = "s3:GetBucketAcl"
-        Resource  = aws_s3_bucket.trail_logs.arn
-        Condition = {
-          StringEquals = {
-            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
-          }
-          (var.strict_trail_source_arn ? "ArnEquals" : "ArnLike") = {
-            "aws:SourceArn" = var.strict_trail_source_arn ? local.strict_trail_arn : local.wildcard_trail_arn
-          }
-        }
-      }
-    ]
-  })
+  policy = module.archive_policy.json
 }
 
+moved {
+  from = aws_cloudtrail.baseline
+  to   = aws_cloudtrail.baseline[0]
+}
 resource "aws_cloudtrail" "baseline" {
+  count                         = var.create_trail ? 1 : 0
   name                          = var.trail_name
   s3_bucket_name                = aws_s3_bucket.trail_logs.bucket
   include_global_service_events = true
@@ -189,5 +167,36 @@ resource "aws_cloudtrail" "baseline" {
     }
   }
 
-  depends_on = [aws_s3_bucket_policy.trail_logs]
+  lifecycle {
+    precondition {
+      condition     = (!var.enable_s3_data_events || length(var.s3_data_event_bucket_arns) > 0) && (!var.enable_lambda_data_events || length(var.lambda_data_event_function_arns) > 0)
+      error_message = "Enabled data selectors require explicit resource ARNs."
+    }
+  }
+  depends_on = [aws_s3_bucket_policy.trail_logs, aws_s3_bucket_versioning.trail_logs, aws_s3_bucket_server_side_encryption_configuration.trail_logs_sse_s3, aws_s3_bucket_server_side_encryption_configuration.trail_logs_sse_kms, aws_s3_bucket_object_lock_configuration.archive]
+}
+
+resource "aws_s3_bucket_object_lock_configuration" "archive" {
+  provider = aws.archive
+  count    = var.object_lock_days > 0 ? 1 : 0
+  bucket   = aws_s3_bucket.trail_logs.id
+  rule {
+    default_retention {
+      mode = "GOVERNANCE"
+      days = var.object_lock_days
+    }
+  }
+  depends_on = [aws_s3_bucket_versioning.trail_logs]
+}
+
+module "archive_policy" {
+  source                  = "../archive-policy"
+  bucket_arn              = aws_s3_bucket.trail_logs.arn
+  owner_id                = local.owner_id
+  partition               = data.aws_partition.current.partition
+  trail_home_region       = var.trail_home_region
+  trail_name              = var.trail_name
+  strict_trail_source_arn = var.strict_trail_source_arn
+  allow_multi_account     = local.allow_multi_account_writes
+  organization_id         = var.organization_id
 }
